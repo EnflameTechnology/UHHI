@@ -1,0 +1,334 @@
+use core::{
+    fmt::{self, Debug, Pointer},
+    hash::Hash,
+    ptr,
+};
+use std::ffi::c_void;
+use std::marker::PhantomData;
+use std::mem::size_of;
+use uhal::memory::{DevicePointerTrait};
+pub use cust_core::_hidden::{DeviceCopy};
+pub use cust_raw as driv;
+use driv::CUdeviceptr;
+
+#[repr(transparent)]
+#[derive(Clone, Copy, Debug, PartialOrd, Ord, PartialEq, Eq, Hash)]
+pub struct CuDevicePointer<T: ?Sized + DeviceCopy> {
+    ptr: CUdeviceptr,
+    marker: PhantomData<*mut T>,
+}
+
+unsafe impl<T: ?Sized + DeviceCopy> DeviceCopy for CuDevicePointer<T> {}
+
+impl<T: DeviceCopy> Pointer for CuDevicePointer<T> {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        let ptr = self.ptr as *const c_void;
+        fmt::Pointer::fmt(&ptr, f)
+    }
+}
+
+impl<T: DeviceCopy> DevicePointerTrait<T> for CuDevicePointer<T>{
+    type DevicePointerT = CuDevicePointer<T>;
+    type RawDevicePointerT = CUdeviceptr;
+    /// Returns a rust [`pointer`] created from this pointer, meant for FFI purposes.
+    /// **The pointer is not dereferenceable from the CPU!**
+    fn as_ptr(&self) -> *const T
+    {
+        self.ptr as *const T
+    }
+
+    /// Returns a rust [`pointer`] created from this pointer, meant for FFI purposes.
+    /// **The pointer is not dereferenceable from the CPU!**
+    fn as_mut_ptr(&self) -> *mut T
+    {
+        self.ptr as *mut T
+    }
+
+    /// Returns the contained CUdeviceptr.
+    fn as_raw(&self) -> Self::RawDevicePointerT
+    {
+        self.ptr
+    }
+
+    /// Create a DevicePointer from a raw Device pointer
+    fn from_raw(ptr: Self::RawDevicePointerT) -> Self
+    {
+        Self {
+            ptr,
+            marker: PhantomData,
+        }
+    }
+
+    /// Returns true if the pointer is null.
+    /// # Examples
+    ///
+    /// ```
+    /// # let _context = cust::quick_init().unwrap();
+    /// use cust::memory::*;
+    /// use std::ptr;
+    /// unsafe {
+    ///     let null : *mut u64 = ptr::null_mut();
+    ///     assert!(DevicePointer::wrap(null).is_null());
+    /// }
+    /// ```
+    fn is_null(self) -> bool
+    {
+        self.ptr == 0
+    }
+
+    /// Returns a null device pointer.
+    ///
+    // TODO (AL): do we even want this?
+    fn null() -> Self
+    where
+        T: Sized
+    {
+        Self {
+            ptr: 0,
+            marker: PhantomData,
+        }
+    }
+
+    /// Calculates the offset from a device pointer.
+    ///
+    /// `count` is in units of T; eg. a `count` of 3 represents a pointer offset of
+    /// `3 * size_of::<T>()` bytes.
+    ///
+    /// # Safety
+    ///
+    /// If any of the following conditions are violated, the result is Undefined
+    /// Behavior:
+    ///
+    /// * Both the starting and resulting pointer must be either in bounds or one
+    ///   byte past the end of *the same* allocated object.
+    ///
+    /// * The computed offset, **in bytes**, cannot overflow an `isize`.
+    ///
+    /// * The offset being in bounds cannot rely on "wrapping around" the address
+    ///   space. That is, the infinite-precision sum, **in bytes** must fit in a usize.
+    ///
+    /// Consider using `wrapping_offset` instead if these constraints are
+    /// difficult to satisfy. The only advantage of this method is that it
+    /// enables more aggressive compiler optimizations.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # let _context = cust::quick_init().unwrap();
+    /// use cust::memory::*;
+    /// unsafe {
+    ///     let mut dev_ptr = malloc::<u64>(5).unwrap();
+    ///     let offset = dev_ptr.offset(1); // Points to the 2nd u64 in the buffer
+    ///     free(dev_ptr); // Must free the buffer using the original pointer
+    /// }
+    /// ```
+    unsafe fn offset(self, count: isize) -> Self
+    where
+        T: Sized
+    {
+        let ptr = self.ptr + (count as usize * size_of::<T>()) as u64;
+        Self {
+            ptr,
+            marker: PhantomData,
+        }
+    }
+
+    /// Calculates the offset from a device pointer using wrapping arithmetic.
+    ///
+    /// `count` is in units of T; eg. a `count` of 3 represents a pointer offset of
+    /// `3 * size_of::<T>()` bytes.
+    ///
+    /// # Safety
+    ///
+    /// The resulting pointer does not need to be in bounds, but it is
+    /// potentially hazardous to dereference (which requires `unsafe`).
+    /// In particular, the resulting pointer may *not* be used to access a
+    /// different allocated object than the one `self` points to. In other
+    /// words, `x.wrapping_offset(y.wrapping_offset_from(x))` is
+    /// *not* the same as `y`, and dereferencing it is undefined behavior
+    /// unless `x` and `y` point into the same allocated object.
+    ///
+    /// Always use `.offset(count)` instead when possible, because `offset`
+    /// allows the compiler to optimize better.  If you need to cross object
+    /// boundaries, cast the pointer to an integer and do the arithmetic there.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # let _context = cust::quick_init().unwrap();
+    /// use cust::memory::*;
+    /// unsafe {
+    ///     let mut dev_ptr = malloc::<u64>(5).unwrap();
+    ///     let offset = dev_ptr.wrapping_offset(1); // Points to the 2nd u64 in the buffer
+    ///     free(dev_ptr); // Must free the buffer using the original pointer
+    /// }
+    /// ```
+    fn wrapping_offset(self, count: isize) -> Self
+    where
+        T: Sized
+    {
+        let ptr = self
+            .ptr
+            .wrapping_add((count as usize * size_of::<T>()) as u64);
+        Self {
+            ptr,
+            marker: PhantomData,
+        }
+    }
+
+    /// Calculates the offset from a pointer (convenience for `.offset(count as isize)`).
+    ///
+    /// `count` is in units of T; e.g. a `count` of 3 represents a pointer
+    /// offset of `3 * size_of::<T>()` bytes.
+    ///
+    /// # Safety
+    ///
+    /// If any of the following conditions are violated, the result is Undefined
+    /// Behavior:
+    ///
+    /// * Both the starting and resulting pointer must be either in bounds or one
+    ///   byte past the end of an allocated object.
+    ///
+    /// * The computed offset, **in bytes**, cannot overflow an `isize`.
+    ///
+    /// * The offset being in bounds cannot rely on "wrapping around" the address
+    ///   space. That is, the infinite-precision sum must fit in a `usize`.
+    ///
+    /// Consider using `wrapping_offset` instead if these constraints are
+    /// difficult to satisfy. The only advantage of this method is that it
+    /// enables more aggressive compiler optimizations.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # let _context = cust::quick_init().unwrap();
+    /// use cust::memory::*;
+    /// unsafe {
+    ///     let mut dev_ptr = malloc::<u64>(5).unwrap();
+    ///     let offset = dev_ptr.add(1); // Points to the 2nd u64 in the buffer
+    ///     free(dev_ptr); // Must free the buffer using the original pointer
+    /// }
+    /// ```
+    #[allow(clippy::should_implement_trait)]
+    unsafe fn add(self, count: usize) -> Self
+    where
+        T: Sized
+    {
+        self.offset(count as isize)
+    }
+
+    /// Calculates the offset from a pointer (convenience for
+    /// `.offset((count as isize).wrapping_neg())`).
+    ///
+    /// `count` is in units of T; e.g. a `count` of 3 represents a pointer
+    /// offset of `3 * size_of::<T>()` bytes.
+    ///
+    /// # Safety
+    ///
+    /// If any of the following conditions are violated, the result is Undefined
+    /// Behavior:
+    ///
+    /// * Both the starting and resulting pointer must be either in bounds or one
+    ///   byte past the end of an allocated object.
+    ///
+    /// * The computed offset, **in bytes**, cannot overflow an `isize`.
+    ///
+    /// * The offset being in bounds cannot rely on "wrapping around" the address
+    ///   space. That is, the infinite-precision sum must fit in a `usize`.
+    ///
+    /// Consider using `wrapping_offset` instead if these constraints are
+    /// difficult to satisfy. The only advantage of this method is that it
+    /// enables more aggressive compiler optimizations.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # let _context = cust::quick_init().unwrap();
+    /// use cust::memory::*;
+    /// unsafe {
+    ///     let mut dev_ptr = malloc::<u64>(5).unwrap();
+    ///     let offset = dev_ptr.add(4).sub(3); // Points to the 2nd u64 in the buffer
+    ///     free(dev_ptr); // Must free the buffer using the original pointer
+    /// }
+    #[allow(clippy::should_implement_trait)]
+    unsafe fn sub(self, count: usize) -> Self
+    where
+        T: Sized
+    {
+        self.offset((count as isize).wrapping_neg())
+    }
+
+    /// Calculates the offset from a pointer using wrapping arithmetic.
+    /// (convenience for `.wrapping_offset(count as isize)`)
+    ///
+    /// `count` is in units of T; e.g. a `count` of 3 represents a pointer
+    /// offset of `3 * size_of::<T>()` bytes.
+    ///
+    /// # Safety
+    ///
+    /// The resulting pointer does not need to be in bounds, but it is
+    /// potentially hazardous to dereference.
+    ///
+    /// Always use `.add(count)` instead when possible, because `add`
+    /// allows the compiler to optimize better.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # let _context = cust::quick_init().unwrap();
+    /// use cust::memory::*;
+    /// unsafe {
+    ///     let mut dev_ptr = malloc::<u64>(5).unwrap();
+    ///     let offset = dev_ptr.wrapping_add(1); // Points to the 2nd u64 in the buffer
+    ///     free(dev_ptr); // Must free the buffer using the original pointer
+    /// }
+    /// ```
+    fn wrapping_add(self, count: usize) -> Self
+    where
+        T: Sized
+    {
+        self.wrapping_offset(count as isize)
+    }
+
+    /// Calculates the offset from a pointer using wrapping arithmetic.
+    /// (convenience for `.wrapping_offset((count as isize).wrapping_sub())`)
+    ///
+    /// `count` is in units of T; e.g. a `count` of 3 represents a pointer
+    /// offset of `3 * size_of::<T>()` bytes.
+    ///
+    /// # Safety
+    ///
+    /// The resulting pointer does not need to be in bounds, but it is
+    /// potentially hazardous to dereference (which requires `unsafe`).
+    ///
+    /// Always use `.sub(count)` instead when possible, because `sub`
+    /// allows the compiler to optimize better.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # let _context = cust::quick_init().unwrap();
+    /// use cust::memory::*;
+    /// unsafe {
+    ///     let mut dev_ptr = malloc::<u64>(5).unwrap();
+    ///     let offset = dev_ptr.wrapping_add(4).wrapping_sub(3); // Points to the 2nd u64 in the buffer
+    ///     free(dev_ptr); // Must free the buffer using the original pointer
+    /// }
+    /// ```
+    fn wrapping_sub(self, count: usize) -> Self
+    where
+        T: Sized
+    {
+        self.wrapping_offset((count as isize).wrapping_neg())
+    }
+}
+
+impl<T: DeviceCopy> CuDevicePointer<T> {
+    /// Casts this device pointer to another type.
+    pub fn cast<U: DeviceCopy>(self) -> CuDevicePointer<U>
+    {
+        CuDevicePointer::from_raw(self.ptr)
+    }
+}
+
+

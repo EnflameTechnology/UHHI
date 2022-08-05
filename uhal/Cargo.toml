@@ -1,0 +1,31 @@
+[package]
+name = "uhal"
+version = "0.1.0"
+# Big thanks to the original author of rustacuda <3
+authors = [
+    "Guoqing Bao <guoqing.bao@enflame-tech.com>",
+]
+edition = "2021"
+license = "MIT OR Apache-2.0"
+description = "Universal Hardware Interface"
+repository = ""
+readme = "/README.md"
+
+[dependencies]
+bitflags = "1.2"
+num-complex = { version = "0.4", optional = true }
+vek = { version = "0.15.1", optional = true, default-features = false }
+bytemuck = { version = "1.7.3", optional = true }
+cust_core = { path = "../common_features/cust_core", version = "0.1.0"}
+cust_derive = { path = "../common_features/cust_derive", version = "0.2" }
+
+[features]
+default= ["bytemuck"]
+
+[build-dependencies]
+
+[dev-dependencies]
+image = "0.23.14"
+
+[package.metadata.docs.rs]
+rustdoc-args = ["--cfg", "docsrs"]
