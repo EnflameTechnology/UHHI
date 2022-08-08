@@ -51,7 +51,7 @@ impl<T: DeviceCopy> CuDeviceSlice<T> {
     /// # use crate::cuda_backend as cuda;
     /// use uhal::memory::{DeviceBufferTrait, MemoryTrait, DevicePointerTrait};
     /// use uhal::DriverLibraryTrait;
-    /// # let _context = cuda::quick_init().unwrap();
+    /// # let _context = cuda::CuApi::quick_init().unwrap();
     /// use cuda::memory::*;
     /// let a = CuDeviceBuffer::from_slice(&[1, 2, 3]).unwrap();
     /// assert_eq!(a.len(), 3);
@@ -68,7 +68,7 @@ impl<T: DeviceCopy> CuDeviceSlice<T> {
     /// # use crate::cuda_backend as cuda;
     /// use uhal::memory::{DeviceBufferTrait, MemoryTrait, DevicePointerTrait};
     /// use uhal::DriverLibraryTrait;
-    /// # let _context = cuda::quick_init().unwrap();
+    /// # let _context = cuda::CuApi::quick_init().unwrap();
     /// use cuda::memory::*;
     /// let a : CuDeviceBuffer<u64> = unsafe { CuDeviceBuffer::uninitialized(0).unwrap() };
     /// assert!(a.is_empty());
@@ -91,8 +91,8 @@ impl<T: DeviceCopy> CuDeviceSlice<T> {
     /// use uhal::DriverLibraryTrait;
     /// let _context = cuda::CuApi::quick_init().unwrap();
     /// use cuda::memory::*;
-    /// let a = CuDeviceBuffer::from_slice(&[1, 2, 3]).unwrap();
-    /// println!("{:p}", a.as_ptr());
+    /// let a = CuDeviceBuffer::<i32>::from_slice(&[1, 2, 3]).unwrap();
+    /// println!("{:p}", a.as_device_ptr());
     /// ```
     pub fn as_device_ptr(&self) -> CuDevicePointer<T> {
         self.ptr
@@ -193,9 +193,9 @@ impl<T: DeviceCopy> CuDeviceSlice<T> {
     /// # use crate::cuda_backend as cuda;
     /// use uhal::memory::{DeviceBufferTrait, MemoryTrait, DevicePointerTrait};
     /// use uhal::DriverLibraryTrait;
-    /// # let _context = cuda::quick_init().unwrap();
+    /// # let _context = cuda::CuApi::quick_init().unwrap();
     /// use cuda::memory::*;
-    /// let mut x = CuDeviceBuffer::from_slice(&[0u64, 1, 2, 3, 4, 5]).unwrap();
+    /// let mut x = CuDeviceBuffer::<u64>::from_slice(&[0u64, 1, 2, 3, 4, 5]).unwrap();
     /// // Manually slice the buffer (this is not recommended!)
     /// let ptr = unsafe { x.as_device_ptr().offset(1) };
     /// let slice = unsafe { CuDeviceSlice::from_raw_parts(ptr, 2) };

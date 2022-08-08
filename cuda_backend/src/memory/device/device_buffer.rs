@@ -55,7 +55,7 @@ impl<T: DeviceCopy> DeviceBufferTrait<T> for CuDeviceBuffer<T> {
     /// # use crate::cuda_backend as cuda;
     /// use uhal::memory::{DeviceBufferTrait, MemoryTrait, DevicePointerTrait};
     /// use uhal::DriverLibraryTrait;
-    /// # let _context = cuda::quick_init().unwrap();
+    /// # let _context = cuda::CuApi::quick_init().unwrap();
     /// use cuda::memory::*;
     /// let mut buffer = unsafe { CuDeviceBuffer::uninitialized(5).unwrap() };
     /// buffer.copy_from(&[0u64, 1, 2, 3, 4]).unwrap();
@@ -117,8 +117,9 @@ impl<T: DeviceCopy> DeviceBufferTrait<T> for CuDeviceBuffer<T> {
     /// # use crate::cuda_backend as cuda;
     /// use uhal::memory::{DeviceBufferTrait, MemoryTrait, DevicePointerTrait};
     /// use uhal::DriverLibraryTrait;
+    /// use uhal::stream::{StreamFlags, StreamTrait};
     /// # fn main() -> Result<(), Box<dyn std::error::Error>> {
-    /// # let _context = cuda::quick_init().unwrap();
+    /// # let _context = cuda::CuApi::quick_init().unwrap();
     /// use cuda::{memory::*, stream::*};
     /// let stream = CuStream::new(StreamFlags::DEFAULT, None)?;
     /// let mut host_vals = [1, 2, 3];
@@ -172,7 +173,7 @@ impl<T: DeviceCopy> DeviceBufferTrait<T> for CuDeviceBuffer<T> {
     /// # use crate::cuda_backend as cuda;
     /// use uhal::memory::{DeviceBufferTrait, MemoryTrait, DevicePointerTrait};
     /// use uhal::DriverLibraryTrait;
-    /// # let _context = cuda::quick_init().unwrap();
+    /// # let _context = cuda::CuApi::quick_init().unwrap();
     /// use std::mem;
     /// use cuda::memory::*;
     ///
@@ -202,7 +203,7 @@ impl<T: DeviceCopy> DeviceBufferTrait<T> for CuDeviceBuffer<T> {
     /// # use crate::cuda_backend as cuda;
     /// use uhal::memory::{DeviceBufferTrait, MemoryTrait, DevicePointerTrait};
     /// use uhal::DriverLibraryTrait;
-    /// # let _context = cuda::quick_init().unwrap();
+    /// # let _context = cuda::CuApi::quick_init().unwrap();
     /// use cuda::memory::*;
     /// let x = CuDeviceBuffer::from_slice(&[10, 20, 30]).unwrap();
     /// match CuDeviceBuffer::drop(x) {
@@ -236,7 +237,7 @@ impl<T: DeviceCopy> DeviceBufferTrait<T> for CuDeviceBuffer<T> {
         }
     }
 
-       /// Allocate a new device buffer of the same size as `slice`, initialized with a clone of
+    /// Allocate a new device buffer of the same size as `slice`, initialized with a clone of
     /// the data in `slice`.
     ///
     /// # Errors
@@ -249,7 +250,7 @@ impl<T: DeviceCopy> DeviceBufferTrait<T> for CuDeviceBuffer<T> {
     /// # use crate::cuda_backend as cuda;
     /// use uhal::memory::{DeviceBufferTrait, MemoryTrait, DevicePointerTrait};
     /// use uhal::DriverLibraryTrait;
-    /// # let _context = cuda::quick_init().unwrap();
+    /// # let _context = cuda::CuApi::quick_init().unwrap();
     /// use cuda::memory::*;
     /// let values = [0u64; 5];
     /// let mut buffer = CuDeviceBuffer::from_slice(&values).unwrap();
@@ -280,9 +281,10 @@ impl<T: DeviceCopy> DeviceBufferTrait<T> for CuDeviceBuffer<T> {
     /// # use crate::cuda_backend as cuda;
     /// use uhal::memory::{DeviceBufferTrait, MemoryTrait, DevicePointerTrait};
     /// use uhal::DriverLibraryTrait;
-    /// # let _context = cuda::quick_init().unwrap();
+    /// use uhal::stream::{StreamFlags, StreamTrait};
+    /// # let _context = cuda::CuApi::quick_init().unwrap();
     /// use cuda::memory::*;
-    /// use cuda::stream::{CuStream, StreamFlags};
+    /// use cuda::stream::{CuStream};
     ///
     /// let stream = CuStream::new(StreamFlags::NON_BLOCKING, None).unwrap();
     /// let values = [0u64; 5];
@@ -308,6 +310,7 @@ impl<T: DeviceCopy> DeviceBufferTrait<T> for CuDeviceBuffer<T> {
 
 #[cfg(feature = "bytemuck")]
 impl<T: DeviceCopy + Zeroable> CuDeviceBuffer<T> {
+    
     // type DeviceBufferT = CuDeviceBuffer<T>;
     // type StreamT = CuStream;
     /// Allocate device memory and fill it with zeroes (`0u8`).
@@ -320,7 +323,7 @@ impl<T: DeviceCopy + Zeroable> CuDeviceBuffer<T> {
     /// # use crate::cuda_backend as cuda;
     /// use uhal::memory::{DeviceBufferTrait, MemoryTrait, DevicePointerTrait};
     /// use uhal::DriverLibraryTrait;
-    /// # let _context = cuda::quick_init().unwrap();
+    /// # let _context = cuda::CuApi::quick_init().unwrap();
     /// use cuda::memory::*;
     /// let mut zero = CuDeviceBuffer::zeroed(4).unwrap();
     /// let mut values = [1u8, 2, 3, 4];
@@ -328,7 +331,7 @@ impl<T: DeviceCopy + Zeroable> CuDeviceBuffer<T> {
     /// assert_eq!(values, [0; 4]);
     /// ```
     #[cfg_attr(docsrs, doc(cfg(feature = "bytemuck")))]
-    fn zeroed(size: usize) -> DeviceResult<CuDeviceBuffer<T>>
+    pub fn zeroed(size: usize) -> DeviceResult<CuDeviceBuffer<T>>
     {
         unsafe {
             let new_buf = CuDeviceBuffer::uninitialized(size)?;
@@ -357,8 +360,9 @@ impl<T: DeviceCopy + Zeroable> CuDeviceBuffer<T> {
     /// # use crate::cuda_backend as cuda;
     /// use uhal::memory::{DeviceBufferTrait, MemoryTrait, DevicePointerTrait};
     /// use uhal::DriverLibraryTrait;
+    /// use uhal::stream::{StreamFlags, StreamTrait};
     /// # fn main() -> Result<(), Box<dyn std::error::Error>> {
-    /// # let _context = cuda::quick_init().unwrap();
+    /// # let _context = cuda::CuApi::quick_init().unwrap();
     /// use cuda::{memory::*, stream::*};
     /// let stream = CuStream::new(StreamFlags::DEFAULT, None)?;
     /// let mut values = [1u8, 2, 3, 4];
@@ -373,7 +377,7 @@ impl<T: DeviceCopy + Zeroable> CuDeviceBuffer<T> {
     /// # }
     /// ```
     #[cfg_attr(docsrs, doc(cfg(feature = "bytemuck")))]
-    unsafe fn zeroed_async(size: usize, stream: &CuStream) -> DeviceResult<CuDeviceBuffer<T>>
+    pub unsafe fn zeroed_async(size: usize, stream: &CuStream) -> DeviceResult<CuDeviceBuffer<T>>
     {
         let new_buf = CuDeviceBuffer::uninitialized_async(size, stream)?;
         if size_of::<T>() != 0 {
