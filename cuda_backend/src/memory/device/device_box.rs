@@ -47,9 +47,9 @@ impl<T: DeviceCopy + bytemuck::Zeroable> CuDeviceBox<T>{
     ///
     /// ```
     /// # use crate::cuda_backend as cuda;
-    /// use uhal::memory::{DeviceBufferTrait, MemoryTrait, DevicePointerTrait};
+    /// use uhal::memory::{DeviceBufferTrait, MemoryTrait, DevicePointerTrait, DeviceBoxTrait};
     /// use uhal::DriverLibraryTrait;
-    /// # let _context = cuda::quick_init().unwrap();
+    /// # let _context = cuda::CuApi::quick_init().unwrap();
     /// use cuda::memory::*;
     /// let mut zero = CuDeviceBox::zeroed().unwrap();
     /// let mut value = 5u64;
@@ -57,7 +57,7 @@ impl<T: DeviceCopy + bytemuck::Zeroable> CuDeviceBox<T>{
     /// assert_eq!(0, value);
     /// ```
     #[cfg_attr(docsrs, doc(cfg(feature = "bytemuck")))]
-    fn zeroed() -> DeviceResult<CuDeviceBox<T>>
+    pub fn zeroed() -> DeviceResult<CuDeviceBox<T>>
     {
         unsafe {
             let new_box = CuDeviceBox::uninitialized()?;
@@ -84,10 +84,11 @@ impl<T: DeviceCopy + bytemuck::Zeroable> CuDeviceBox<T>{
     ///
     /// ```
     /// # use crate::cuda_backend as cuda;
-    /// use uhal::memory::{DeviceBufferTrait, MemoryTrait, DevicePointerTrait};
+    /// use uhal::memory::{DeviceBufferTrait, MemoryTrait, DevicePointerTrait, DeviceBoxTrait};
+    /// use uhal::stream::{StreamFlags, StreamTrait};
     /// use uhal::DriverLibraryTrait;
     /// # fn main() -> Result<(), Box<dyn std::error::Error>> {
-    /// # let _context = cuda::quick_init().unwrap();
+    /// # let _context = cuda::CuApi::quick_init().unwrap();
     /// use cuda::{memory::*, stream::*};
     /// let stream = CuStream::new(StreamFlags::DEFAULT, None)?;
     /// let mut value = 5u64;
@@ -102,7 +103,7 @@ impl<T: DeviceCopy + bytemuck::Zeroable> CuDeviceBox<T>{
     /// # }
     /// ```
     #[cfg_attr(docsrs, doc(cfg(feature = "bytemuck")))]
-    unsafe fn zeroed_async(stream: &CuStream) -> DeviceResult<CuDeviceBox<T>>
+    pub unsafe fn zeroed_async(stream: &CuStream) -> DeviceResult<CuDeviceBox<T>>
     {
         let new_box = CuDeviceBox::uninitialized_async(stream)?;
         if mem::size_of::<T>() != 0 {
@@ -136,9 +137,9 @@ impl<T: DeviceCopy> DeviceBoxTrait<T> for CuDeviceBox<T> {
     ///
     /// ```
     /// # use crate::cuda_backend as cuda;
-    /// use uhal::memory::{DeviceBufferTrait, MemoryTrait, DevicePointerTrait};
+    /// use uhal::memory::{DeviceBufferTrait, MemoryTrait, DevicePointerTrait, DeviceBoxTrait};
     /// use uhal::DriverLibraryTrait;
-    /// # let _context = cuda::quick_init().unwrap();
+    /// # let _context = cuda::CuApi::quick_init().unwrap();
     /// use cuda::memory::*;
     /// let five = CuDeviceBox::new(&5).unwrap();
     /// ```
@@ -173,10 +174,11 @@ impl<T: DeviceCopy> DeviceBoxTrait<T> for CuDeviceBox<T> {
     ///
     /// ```
     /// # use crate::cuda_backend as cuda;
-    /// use uhal::memory::{DeviceBufferTrait, MemoryTrait, DevicePointerTrait};
+    /// use uhal::memory::{DeviceBufferTrait, MemoryTrait, DevicePointerTrait, DeviceBoxTrait};
     /// use uhal::DriverLibraryTrait;
+    /// use uhal::stream::{StreamFlags, StreamTrait};
     /// # fn main() -> Result<(), Box<dyn std::error::Error>> {
-    /// # let _context = cuda::quick_init().unwrap();
+    /// # let _context = cuda::CuApi::quick_init().unwrap();
     /// use cuda::{memory::*, stream::*};
     /// let stream = CuStream::new(StreamFlags::DEFAULT, None)?;
     /// let mut host_val = 0;
@@ -212,10 +214,11 @@ impl<T: DeviceCopy> DeviceBoxTrait<T> for CuDeviceBox<T> {
     ///
     /// ```
     /// # use crate::cuda_backend as cuda;
-    /// use uhal::memory::{DeviceBufferTrait, MemoryTrait, DevicePointerTrait};
+    /// use uhal::memory::{DeviceBufferTrait, MemoryTrait, DevicePointerTrait, DeviceBoxTrait};
     /// use uhal::DriverLibraryTrait;
+    /// use uhal::stream::{StreamFlags, StreamTrait};
     /// # fn main() -> Result<(), Box<dyn std::error::Error>> {
-    /// # let _context = cuda::quick_init().unwrap();
+    /// # let _context = cuda::CuApi::quick_init().unwrap();
     /// use cuda::{memory::*, stream::*};
     /// let stream = CuStream::new(StreamFlags::DEFAULT, None)?;
     /// let mut host_val = 0;
@@ -254,9 +257,9 @@ impl<T: DeviceCopy> DeviceBoxTrait<T> for CuDeviceBox<T> {
     ///
     /// ```
     /// # use crate::cuda_backend as cuda;
-    /// use uhal::memory::{DeviceBufferTrait, MemoryTrait, DevicePointerTrait};
+    /// use uhal::memory::{DeviceBufferTrait, MemoryTrait, DevicePointerTrait, DeviceBoxTrait};
     /// use uhal::DriverLibraryTrait;
-    /// # let _context = cuda::quick_init().unwrap();
+    /// # let _context = cuda::CuApi::quick_init().unwrap();
     /// use cuda::memory::*;
     /// let mut five = unsafe { CuDeviceBox::uninitialized().unwrap() };
     /// five.copy_from(&5u64).unwrap();
@@ -312,13 +315,13 @@ impl<T: DeviceCopy> DeviceBoxTrait<T> for CuDeviceBox<T> {
     ///
     /// ```
     /// # use crate::cuda_backend as cuda;
-    /// use uhal::memory::{DeviceBufferTrait, MemoryTrait, DevicePointerTrait};
+    /// use uhal::memory::{DeviceBufferTrait, MemoryTrait, DevicePointerTrait, DeviceBoxTrait};
     /// use uhal::DriverLibraryTrait;
-    /// # let _context = cuda::quick_init().unwrap();
+    /// # let _context = cuda::CuApi::quick_init().unwrap();
     /// use cuda::memory::*;
-    /// let x = CuDeviceBox::new(&5).unwrap();
-    /// let ptr = CuDeviceBox::into_device(x).as_raw_mut();
-    /// let x = unsafe { CuDeviceBox::from_raw(ptr) };
+    /// let x = CuDeviceBox::<i32>::new(&5).unwrap();
+    /// let ptr = CuDeviceBox::into_device(x).as_raw();
+    /// let x = unsafe { CuDeviceBox::<i32>::from_raw(ptr) };
     /// ```
     unsafe fn from_raw(ptr: Self::RawDeviceT) -> Self::DeviceBoxT {
         CuDeviceBox {
@@ -343,13 +346,13 @@ impl<T: DeviceCopy> DeviceBoxTrait<T> for CuDeviceBox<T> {
     ///
     /// ```
     /// # use crate::cuda_backend as cuda;
-    /// use uhal::memory::{DeviceBufferTrait, MemoryTrait, DevicePointerTrait};
+    /// use uhal::memory::{DeviceBufferTrait, MemoryTrait, DevicePointerTrait, DeviceBoxTrait};
     /// use uhal::DriverLibraryTrait;
-    /// # let _context = cuda::quick_init().unwrap();
+    /// # let _context = cuda::CuApi::quick_init().unwrap();
     /// use cuda::memory::*;
-    /// let x = CuDeviceBox::new(&5).unwrap();
+    /// let x = CuDeviceBox::<i32>::new(&5).unwrap();
     /// let ptr = CuDeviceBox::into_device(x);
-    /// let x = unsafe { CuDeviceBox::from_device(ptr) };
+    /// let x = unsafe { CuDeviceBox::<i32>::from_device(ptr) };
     /// ```
     unsafe fn from_device(ptr: Self::DevicePointerT) -> Self::DeviceBoxT {
         CuDeviceBox { ptr }
@@ -369,13 +372,13 @@ impl<T: DeviceCopy> DeviceBoxTrait<T> for CuDeviceBox<T> {
     ///
     /// ```
     /// # use crate::cuda_backend as cuda;
-    /// use uhal::memory::{DeviceBufferTrait, MemoryTrait, DevicePointerTrait};
+    /// use uhal::memory::{DeviceBufferTrait, MemoryTrait, DevicePointerTrait, DeviceBoxTrait};
     /// use uhal::DriverLibraryTrait;
-    /// # let _context = cuda::quick_init().unwrap();
+    /// # let _context = cuda::CuApi::quick_init().unwrap();
     /// use cuda::memory::*;
-    /// let x = CuDeviceBox::new(&5).unwrap();
+    /// let x = CuDeviceBox::<i32>::new(&5).unwrap();
     /// let ptr = CuDeviceBox::into_device(x);
-    /// # unsafe { CuDeviceBox::from_device(ptr) };
+    /// # unsafe { CuDeviceBox::<i32>::from_device(ptr) };
     /// ```
     #[allow(clippy::wrong_self_convention)]
     fn into_device(mut b: Self::DeviceBoxT) -> Self::DevicePointerT {
@@ -392,11 +395,11 @@ impl<T: DeviceCopy> DeviceBoxTrait<T> for CuDeviceBox<T> {
     ///
     /// ```
     /// # use crate::cuda_backend as cuda;
-    /// use uhal::memory::{DeviceBufferTrait, MemoryTrait, DevicePointerTrait};
+    /// use uhal::memory::{DeviceBufferTrait, MemoryTrait, DevicePointerTrait, DeviceBoxTrait};
     /// use uhal::DriverLibraryTrait;
-    /// # let _context = cuda::quick_init().unwrap();
+    /// # let _context = cuda::CuApi::quick_init().unwrap();
     /// use cuda::memory::*;
-    /// let mut x = CuDeviceBox::new(&5).unwrap();
+    /// let mut x = CuDeviceBox::<i32>::new(&5).unwrap();
     /// let ptr = x.as_device_ptr();
     /// println!("{:p}", ptr);
     /// ```
@@ -413,11 +416,11 @@ impl<T: DeviceCopy> DeviceBoxTrait<T> for CuDeviceBox<T> {
     ///
     /// ```
     /// # use crate::cuda_backend as cuda;
-    /// use uhal::memory::{DeviceBufferTrait, MemoryTrait, DevicePointerTrait};
+    /// use uhal::memory::{DeviceBufferTrait, MemoryTrait, DevicePointerTrait, DeviceBoxTrait};
     /// use uhal::DriverLibraryTrait;
-    /// # let _context = cuda::quick_init().unwrap();
+    /// # let _context = cuda::CuApi::quick_init().unwrap();
     /// use cuda::memory::*;
-    /// let x = CuDeviceBox::new(&5).unwrap();
+    /// let x = CuDeviceBox::<i32>::new(&5).unwrap();
     /// match CuDeviceBox::drop(x) {
     ///     Ok(()) => println!("Successfully destroyed"),
     ///     Err((e, dev_box)) => {
