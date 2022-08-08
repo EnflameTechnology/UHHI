@@ -27,14 +27,9 @@
 //! the old legacy handling. Doing so will make your use of cust more compatible with
 //! libraries like cuBLAS or cuFFT, as well as avoid potentially confusing context-based bugs.
 pub use cust_raw as driv;
-// use crate::{
-//     private::Sealed,
-// };
 
 use uhal::device::DeviceTrait;
-// use uhal::{ApiVersion};
 use uhal::context::{CacheConfig, ResourceLimit, StreamPriorityRange, ContextHandle, ContextTrait, ContextFlags, SharedMemoryConfig, CurrentContextTrait};
-// use uhal::device::{Device};
 use uhal::error::{DeviceResult, DropResult};
 use crate::device::CuDevice;
 use crate::error::ToResult;
@@ -131,14 +126,18 @@ impl ContextTrait for CuContext {
     /// # Example
     ///
     /// ```
-    /// # use cust::device::Device;
-    /// # use cust::context::{Context, ContextFlags};
-    /// # use std::error::Error;
-    /// #
+    /// use crate::cuda_backend as cuda;
+    /// use uhal::memory::{DeviceBufferTrait, MemoryTrait, DevicePointerTrait};
+    /// use uhal::{Flags, DriverLibraryTrait};
+    /// use uhal::context::{ContextTrait, CurrentContextTrait};
+    /// use uhal::device::DeviceTrait;
+    /// use cuda::device::CuDevice;
+    /// use cuda::context::{ CuContext, CuCurrentContext };
+    /// use std::error::Error;
     /// # fn main () -> Result<(), Box<dyn Error>> {
-    /// cust::init(cust::Flags::empty())?;
-    /// let device = Device::get_device(0)?;
-    /// let context = Context::new(device)?;
+    /// cuda::CuApi::init(Flags::empty())?;
+    /// let device = CuDevice::get_device(0)?;
+    /// let context = CuContext::new(device)?;
     /// let version = context.get_api_version()?;
     /// # Ok(())
     /// # }
@@ -162,15 +161,19 @@ impl ContextTrait for CuContext {
     /// # Example
     ///
     /// ```
-    /// # use cust::device::Device;
-    /// # use cust::context::{Context, ContextFlags};
-    /// # use std::error::Error;
-    /// #
+    /// use crate::cuda_backend as cuda;
+    /// use uhal::memory::{DeviceBufferTrait, MemoryTrait, DevicePointerTrait};
+    /// use uhal::{Flags, DriverLibraryTrait};
+    /// use uhal::context::{ContextTrait, CurrentContextTrait};
+    /// use uhal::device::DeviceTrait;
+    /// use cuda::device::CuDevice;
+    /// use cuda::context::{ CuContext, CuCurrentContext };
+    /// use std::error::Error;
     /// # fn main () -> Result<(), Box<dyn Error>> {
-    /// # cust::init(cust::Flags::empty())?;
-    /// # let device = Device::get_device(0)?;
-    /// let context = Context::new(device)?;
-    /// match Context::drop(context) {
+    /// # cuda::CuApi::init(Flags::empty())?;
+    /// # let device = CuDevice::get_device(0)?;
+    /// let context = CuContext::new(device)?;
+    /// match CuContext::drop(context) {
     ///     Ok(()) => println!("Successfully destroyed"),
     ///     Err((e, ctx)) => {
     ///         println!("Failed to destroy context: {:?}", e);
@@ -205,18 +208,18 @@ impl ContextTrait for CuContext {
     }
 }
 
-impl Drop for CuContext {
-    fn drop(&mut self) {
-        if self.inner.is_null() {
-            return;
-        }
+// impl Drop for CuContext {
+//     fn drop(&mut self) {
+//         if self.inner.is_null() {
+//             return;
+//         }
 
-        unsafe {
-            self.inner = ptr::null_mut();
-            driv::cuDevicePrimaryCtxRelease_v2(self.device);
-        }
-    }
-}
+//         unsafe {
+//             self.inner = ptr::null_mut();
+//             driv::cuDevicePrimaryCtxRelease_v2(self.device);
+//         }
+//     }
+// }
 pub struct CuCurrentContext;
 
 impl CurrentContextTrait for CuCurrentContext {
@@ -232,15 +235,19 @@ impl CurrentContextTrait for CuCurrentContext {
     /// # Example
     ///
     /// ```
-    /// # use cust::device::Device;
-    /// # use cust::context::{ Context, ContextFlags, CurrentContext };
-    /// # use std::error::Error;
-    /// #
+    /// use crate::cuda_backend as cuda;
+    /// use uhal::memory::{DeviceBufferTrait, MemoryTrait, DevicePointerTrait};
+    /// use uhal::{Flags, DriverLibraryTrait};
+    /// use uhal::context::{ContextTrait, CurrentContextTrait};
+    /// use uhal::device::DeviceTrait;
+    /// use cuda::device::CuDevice;
+    /// use cuda::context::{ CuContext, CuCurrentContext };
+    /// use std::error::Error;
     /// # fn main () -> Result<(), Box<dyn Error>> {
-    /// # init(Flags::empty())?;
-    /// # let device = Device::get_device(0)?;
-    /// let context = Context::new(device)?;
-    /// let cache_config = CurrentContext::get_cache_config()?;
+    /// # cuda::CuApi::init(Flags::empty())?;
+    /// # let device = CuDevice::get_device(0)?;
+    /// let context = CuContext::new(device)?;
+    /// let cache_config = CuCurrentContext::get_cache_config()?;
     /// # Ok(())
     /// # }
     /// ```
@@ -259,13 +266,16 @@ impl CurrentContextTrait for CuCurrentContext {
     /// # Example
     ///
     /// ```
-    /// # use crate::cuda_backend::device::CuDevice;
-    /// # use crate::cuda_backend::context::{ CuContext, ContextFlags, CuCurrentContext };
-    /// # use std::error::Error;
-    /// # use crate::cuda_backend::CuApi;
-    /// # use uhal::Flags;
+    /// use crate::cuda_backend as cuda;
+    /// use uhal::memory::{DeviceBufferTrait, MemoryTrait, DevicePointerTrait};
+    /// use uhal::{Flags, DriverLibraryTrait};
+    /// use uhal::context::{ContextTrait, CurrentContextTrait};
+    /// use uhal::device::DeviceTrait;
+    /// use cuda::device::CuDevice;
+    /// use cuda::context::{ CuContext, CuCurrentContext };
+    /// use std::error::Error;
     /// # fn main () -> Result<(), Box<dyn Error>> {
-    /// # CuApi::init(Flags::empty())?;
+    /// # cuda::CuApi::init(Flags::empty())?;
     /// # let device = CuDevice::get_device(0)?;
     /// let context = CuContext::new(device)?;
     /// let device = CuCurrentContext::get_device()?;
@@ -286,15 +296,19 @@ impl CurrentContextTrait for CuCurrentContext {
     /// # Example
     ///
     /// ```
-    /// # use cust::device::Device;
-    /// # use cust::context::{ Context, ContextFlags, CurrentContext };
+    /// use crate::cuda_backend as cuda;
+    /// use uhal::memory::{DeviceBufferTrait, MemoryTrait, DevicePointerTrait};
+    /// use uhal::{Flags, DriverLibraryTrait};
+    /// use uhal::context::{ContextTrait, CurrentContextTrait};
+    /// use uhal::device::DeviceTrait;
+    /// use cuda::device::CuDevice;
+    /// use cuda::context::{ CuContext, CuCurrentContext };
     /// # use std::error::Error;
-    /// #
     /// # fn main () -> Result<(), Box<dyn Error>> {
-    /// # cust::init(cust::DeviceFlags::empty())?;
-    /// # let device = Device::get_device(0)?;
-    /// let context = Context::new(device)?;
-    /// let flags = CurrentContext::get_flags()?;
+    /// # cuda::CuApi::init(Flags::empty())?;
+    /// # let device = CuDevice::get_device(0)?;
+    /// let context = CuContext::new(device)?;
+    /// let flags = CuCurrentContext::get_flags()?;
     /// # Ok(())
     /// # }
     /// ```
@@ -312,15 +326,19 @@ impl CurrentContextTrait for CuCurrentContext {
     /// # Example
     ///
     /// ```
-    /// # use cust::device::Device;
-    /// # use cust::context::{ Context, ContextFlags, CurrentContext, ResourceLimit };
-    /// # use std::error::Error;
-    /// #
+    /// use crate::cuda_backend as cuda;
+    /// use uhal::memory::{DeviceBufferTrait, MemoryTrait, DevicePointerTrait};
+    /// use uhal::{Flags, DriverLibraryTrait};
+    /// use uhal::context::{ContextTrait, CurrentContextTrait, ResourceLimit};
+    /// use uhal::device::DeviceTrait;
+    /// use cuda::device::CuDevice;
+    /// use cuda::context::{ CuContext, CuCurrentContext };
+    /// use std::error::Error;
     /// # fn main () -> Result<(), Box<dyn Error>> {
-    /// # cust::init(cust::DeviceFlags::empty())?;
-    /// # let device = Device::get_device(0)?;
-    /// let context = Context::new(device)?;
-    /// let stack_size = CurrentContext::get_resource_limit(ResourceLimit::StackSize)?;
+    /// # cuda::CuApi::init(Flags::empty())?;
+    /// # let device = CuDevice::get_device(0)?;
+    /// let context = CuContext::new(device)?;
+    /// let stack_size = CuCurrentContext::get_resource_limit(ResourceLimit::StackSize)?;
     /// # Ok(())
     /// # }
     /// ```
@@ -338,15 +356,19 @@ impl CurrentContextTrait for CuCurrentContext {
     /// # Example
     ///
     /// ```
-    /// # use cust::device::Device;
-    /// # use cust::context::{ Context, ContextFlags, CurrentContext, ResourceLimit };
-    /// # use std::error::Error;
-    /// #
+    /// use crate::cuda_backend as cuda;
+    /// use uhal::memory::{DeviceBufferTrait, MemoryTrait, DevicePointerTrait};
+    /// use uhal::{Flags, DriverLibraryTrait};
+    /// use uhal::context::{ContextTrait, CurrentContextTrait};
+    /// use uhal::device::DeviceTrait;
+    /// use cuda::device::CuDevice;
+    /// use cuda::context::{ CuContext, CuCurrentContext };
+    /// use std::error::Error;
     /// # fn main () -> Result<(), Box<dyn Error>> {
-    /// # cust::init(cust::DeviceFlags::empty())?;
-    /// # let device = Device::get_device(0)?;
-    /// let context = Context::new(device)?;
-    /// let shared_mem_config = CurrentContext::get_shared_memory_config()?;
+    /// # cuda::CuApi::init(Flags::empty())?;
+    /// # let device = CuDevice::get_device(0)?;
+    /// let context = CuContext::new(device)?;
+    /// let shared_mem_config = CuCurrentContext::get_shared_memory_config()?;
     /// # Ok(())
     /// # }
     /// ```
@@ -371,15 +393,19 @@ impl CurrentContextTrait for CuCurrentContext {
     /// # Example
     ///
     /// ```
-    /// # use cust::device::Device;
-    /// # use cust::context::{ Context, ContextFlags, CurrentContext};
+    /// use crate::cuda_backend as cuda;
+    /// use uhal::memory::{DeviceBufferTrait, MemoryTrait, DevicePointerTrait};
+    /// use uhal::{Flags, DriverLibraryTrait};
+    /// use uhal::context::{ContextTrait, CurrentContextTrait};
+    /// use uhal::device::DeviceTrait;
+    /// use cuda::device::CuDevice;
+    /// use cuda::context::{ CuContext, CuCurrentContext };
     /// # use std::error::Error;
-    /// #
     /// # fn main () -> Result<(), Box<dyn Error>> {
-    /// # cust::init(cust::DeviceFlags::empty())?;
-    /// # let device = Device::get_device(0)?;
-    /// let context = Context::new(device)?;
-    /// let priority_range = CurrentContext::get_stream_priority_range()?;
+    /// # cuda::CuApi::init(Flags::empty())?;
+    /// # let device = CuDevice::get_device(0)?;
+    /// let context = CuContext::new(device)?;
+    /// let priority_range = CuCurrentContext::get_stream_priority_range()?;
     /// # Ok(())
     /// # }
     /// ```
@@ -412,15 +438,20 @@ impl CurrentContextTrait for CuCurrentContext {
     /// # Example
     ///
     /// ```
-    /// # use cust::device::Device;
-    /// # use cust::context::{ Context, ContextFlags, CurrentContext, CacheConfig };
-    /// # use std::error::Error;
+    /// use crate::cuda_backend as cuda;
+    /// use uhal::memory::{DeviceBufferTrait, MemoryTrait, DevicePointerTrait};
+    /// use uhal::{Flags, DriverLibraryTrait};
+    /// use uhal::context::{ContextTrait, CurrentContextTrait, CacheConfig};
+    /// use uhal::device::DeviceTrait;
+    /// use cuda::device::CuDevice;
+    /// use std::error::Error;
+    /// use cuda::context::{ CuContext, CuCurrentContext };
     /// #
     /// # fn main () -> Result<(), Box<dyn Error>> {
-    /// # cust::init(cust::DeviceFlags::empty())?;
-    /// # let device = Device::get_device(0)?;
-    /// let context = Context::new(device)?;
-    /// CurrentContext::set_cache_config(CacheConfig::PreferL1)?;
+    /// # cuda::CuApi::init(Flags::empty())?;
+    /// # let device = CuDevice::get_device(0)?;
+    /// let context = CuContext::new(device)?;
+    /// CuCurrentContext::set_cache_config(CacheConfig::PreferL1)?;
     /// # Ok(())
     /// # }
     /// ```
@@ -456,15 +487,20 @@ impl CurrentContextTrait for CuCurrentContext {
     /// # Example
     ///
     /// ```
-    /// # use cust::device::Device;
-    /// # use cust::context::{ Context, ContextFlags, CurrentContext, ResourceLimit };
+    /// use crate::cuda_backend as cuda;
+    /// use uhal::memory::{DeviceBufferTrait, MemoryTrait, DevicePointerTrait};
+    /// use uhal::{Flags, DriverLibraryTrait};
+    /// use uhal::context::{ContextTrait, CurrentContextTrait, ResourceLimit};
+    /// use uhal::device::DeviceTrait;
+    /// use cuda::device::CuDevice;
+    /// use cuda::context::{ CuContext, CuCurrentContext };
     /// # use std::error::Error;
     /// #
     /// # fn main () -> Result<(), Box<dyn Error>> {
-    /// # cust::init(cust::DeviceFlags::empty())?;
-    /// # let device = Device::get_device(0)?;
-    /// let context = Context::new(device)?;
-    /// CurrentContext::set_resource_limit(ResourceLimit::StackSize, 2048)?;
+    /// # cuda::CuApi::init(Flags::empty())?;
+    /// # let device = CuDevice::get_device(0)?;
+    /// let context = CuContext::new(device)?;
+    /// CuCurrentContext::set_resource_limit(ResourceLimit::StackSize, 2048)?;
     /// # Ok(())
     /// # }
     /// ```
@@ -484,15 +520,17 @@ impl CurrentContextTrait for CuCurrentContext {
     /// # Example
     ///
     /// ```
-    /// # use crate::cuda_backend as cuda;
+    /// use crate::cuda_backend as cuda;
     /// use uhal::memory::{DeviceBufferTrait, MemoryTrait, DevicePointerTrait};
-    /// use uhal::DriverLibraryTrait;
-    /// # use cuda::device::CuDevice;
-    /// # use cuda::context::{ CuContext, ContextFlags, CuCurrentContext, SharedMemoryConfig };
+    /// use uhal::{Flags, DriverLibraryTrait};
+    /// use uhal::context::{ContextTrait, CurrentContextTrait, SharedMemoryConfig};
+    /// use uhal::device::DeviceTrait;
+    /// use cuda::device::CuDevice;
+    /// use cuda::context::{ CuContext, CuCurrentContext };
     /// # use std::error::Error;
     /// #
     /// # fn main () -> Result<(), Box<dyn Error>> {
-    /// # cuda::init(cuda::Flags::empty())?;
+    /// # cuda::CuApi::init(Flags::empty())?;
     /// # let device = CuDevice::get_device(0)?;
     /// let context = CuContext::new(device)?;
     /// CuCurrentContext::set_shared_memory_config(SharedMemoryConfig::DefaultBankSize)?;
@@ -509,19 +547,21 @@ impl CurrentContextTrait for CuCurrentContext {
     /// # Example
     ///
     /// ```
-    /// # use crate::cuda_backend as cuda;
+    /// use crate::cuda_backend as cuda;
     /// use uhal::memory::{DeviceBufferTrait, MemoryTrait, DevicePointerTrait};
-    /// use uhal::DriverLibraryTrait;
-    /// # use cuda::device::CuDevice;
-    /// # use cuda::context::{ CuContext, ContextFlags, CuCurrentContext };
-    /// # use std::error::Error;
+    /// use uhal::{Flags, DriverLibraryTrait};
+    /// use uhal::context::{ContextTrait, CurrentContextTrait};
+    /// use uhal::device::DeviceTrait;
+    /// use cuda::device::CuDevice;
+    /// use cuda::context::{ CuContext, CuCurrentContext };
+    /// use std::error::Error;
     /// #
-    /// # fn main () -> Result<(), Box<dyn Error>> {
-    /// # cuda::init(cuda::Flags::empty())?;
-    /// # let device = CuDevice::get_device(0)?;
+    /// fn main () -> Result<(), Box<dyn Error>> {
+    /// cuda::CuApi::init(Flags::empty())?;
+    /// let device = CuDevice::get_device(0)?;
     /// let context = CuContext::new(device)?;
     /// CuCurrentContext::set_current(&context)?;
-    /// # Ok(())
+    /// Ok(())
     /// # }
     /// ```
     fn set_current(c: &Self::ContextT) -> DeviceResult<()>
