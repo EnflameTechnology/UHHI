@@ -205,7 +205,7 @@ impl<T: DeviceCopy> DeviceBufferTrait<T> for CuDeviceBuffer<T> {
     /// use uhal::DriverLibraryTrait;
     /// # let _context = cuda::CuApi::quick_init().unwrap();
     /// use cuda::memory::*;
-    /// let x = CuDeviceBuffer::from_slice(&[10, 20, 30]).unwrap();
+    /// let x = CuDeviceBuffer::<u32>::from_slice(&[10, 20, 30]).unwrap();
     /// match CuDeviceBuffer::drop(x) {
     ///     Ok(()) => println!("Successfully destroyed"),
     ///     Err((e, buf)) => {
@@ -460,19 +460,19 @@ impl<T: DeviceCopy> DerefMut for CuDeviceBuffer<T> {
     }
 }
 
-impl<T: DeviceCopy> Drop for CuDeviceBuffer<T> {
-    fn drop(&mut self) {
-        if self.buf.is_null() {
-            return;
-        }
+// impl<T: DeviceCopy> Drop for CuDeviceBuffer<T> {
+//     fn drop(&mut self) {
+//         if self.buf.is_null() {
+//             return;
+//         }
 
-        if self.len > 0 && size_of::<T>() > 0 {
-            let ptr = mem::replace(&mut self.buf, CuDevicePointer::null());
-            unsafe {
-                let _ = CuMemory::free(ptr);
-            }
-        }
-        self.len = 0;
-    }
-}
+//         if self.len > 0 && size_of::<T>() > 0 {
+//             let ptr = mem::replace(&mut self.buf, CuDevicePointer::null());
+//             unsafe {
+//                 let _ = CuMemory::free(ptr);
+//             }
+//         }
+//         self.len = 0;
+//     }
+// }
 

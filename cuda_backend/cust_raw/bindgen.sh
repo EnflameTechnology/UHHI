@@ -17,5 +17,5 @@ bindgen \
   --with-derive-hash \
   --with-derive-ord \
   --size_t-is-usize \
-  wrapper.h -- -I/opt/cuda/include \
+  wrapper.h -- -I/usr/local/cuda/include -I/usr/lib/gcc/x86_64-linux-gnu/9/include \
   > src/cuda.rs

@@ -447,18 +447,18 @@ impl<T: DeviceCopy> DeviceBoxTrait<T> for CuDeviceBox<T> {
     }
 }
 
-impl<T: DeviceCopy> Drop for CuDeviceBox<T> {
-    fn drop(&mut self) {
-        if self.ptr.is_null() {
-            return;
-        }
+// impl<T: DeviceCopy> Drop for CuDeviceBox<T> {
+//     fn drop(&mut self) {
+//         if self.ptr.is_null() {
+//             return;
+//         }
 
-        let ptr = mem::replace(&mut self.ptr, CuDevicePointer::null());
-        unsafe {
-            let _ = CuMemory::free(ptr);
-        }
-    }
-}
+//         let ptr = mem::replace(&mut self.ptr, CuDevicePointer::null());
+//         unsafe {
+//             let _ = CuMemory::free(ptr);
+//         }
+//     }
+// }
 
 impl<T: DeviceCopy> Pointer for CuDeviceBox<T> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {

@@ -63,12 +63,15 @@ impl<T: DeviceCopy> DevicePointerTrait<T> for CuDevicePointer<T>{
     /// # Examples
     ///
     /// ```
-    /// # let _context = cust::quick_init().unwrap();
-    /// use cust::memory::*;
+    /// # use cuda_backend as cuda;
+    /// use uhal::DriverLibraryTrait;
+    /// use uhal::memory::{DevicePointerTrait};
+    /// # let _context = cuda::CuApi::quick_init().unwrap();
+    /// use cuda::memory::*;
     /// use std::ptr;
     /// unsafe {
     ///     let null : *mut u64 = ptr::null_mut();
-    ///     assert!(DevicePointer::wrap(null).is_null());
+    ///     assert!(CuDevicePointer::wrap(null).is_null());
     /// }
     /// ```
     fn is_null(self) -> bool
@@ -114,12 +117,15 @@ impl<T: DeviceCopy> DevicePointerTrait<T> for CuDevicePointer<T>{
     /// # Examples
     ///
     /// ```
-    /// # let _context = cust::quick_init().unwrap();
-    /// use cust::memory::*;
+    /// # use cuda_backend as cuda;
+    /// use uhal::DriverLibraryTrait;
+    /// use uhal::memory::{DevicePointerTrait};
+    /// # let _context = cuda::CuApi::quick_init().unwrap();
+    /// use cuda::memory::*;
     /// unsafe {
-    ///     let mut dev_ptr = malloc::<u64>(5).unwrap();
+    ///     let mut dev_ptr = CuMemory::malloc::<u64>(5).unwrap();
     ///     let offset = dev_ptr.offset(1); // Points to the 2nd u64 in the buffer
-    ///     free(dev_ptr); // Must free the buffer using the original pointer
+    ///     CuMemory::free(dev_ptr); // Must free the buffer using the original pointer
     /// }
     /// ```
     unsafe fn offset(self, count: isize) -> Self
@@ -155,12 +161,15 @@ impl<T: DeviceCopy> DevicePointerTrait<T> for CuDevicePointer<T>{
     /// # Examples
     ///
     /// ```
-    /// # let _context = cust::quick_init().unwrap();
-    /// use cust::memory::*;
+    /// # use cuda_backend as cuda;
+    /// use uhal::DriverLibraryTrait;
+    /// use uhal::memory::{DevicePointerTrait};
+    /// # let _context = cuda::CuApi::quick_init().unwrap();
+    /// use cuda::memory::*;
     /// unsafe {
-    ///     let mut dev_ptr = malloc::<u64>(5).unwrap();
+    ///     let mut dev_ptr = CuMemory::malloc::<u64>(5).unwrap();
     ///     let offset = dev_ptr.wrapping_offset(1); // Points to the 2nd u64 in the buffer
-    ///     free(dev_ptr); // Must free the buffer using the original pointer
+    ///     CuMemory::free(dev_ptr); // Must free the buffer using the original pointer
     /// }
     /// ```
     fn wrapping_offset(self, count: isize) -> Self
@@ -201,12 +210,15 @@ impl<T: DeviceCopy> DevicePointerTrait<T> for CuDevicePointer<T>{
     /// # Examples
     ///
     /// ```
-    /// # let _context = cust::quick_init().unwrap();
-    /// use cust::memory::*;
+    /// # use cuda_backend as cuda;
+    /// use uhal::DriverLibraryTrait;
+    /// use uhal::memory::{DevicePointerTrait};
+    /// # let _context = cuda::CuApi::quick_init().unwrap();
+    /// use cuda::memory::*;
     /// unsafe {
-    ///     let mut dev_ptr = malloc::<u64>(5).unwrap();
+    ///     let mut dev_ptr = CuMemory::malloc::<u64>(5).unwrap();
     ///     let offset = dev_ptr.add(1); // Points to the 2nd u64 in the buffer
-    ///     free(dev_ptr); // Must free the buffer using the original pointer
+    ///     CuMemory::free(dev_ptr); // Must free the buffer using the original pointer
     /// }
     /// ```
     #[allow(clippy::should_implement_trait)]
@@ -243,12 +255,15 @@ impl<T: DeviceCopy> DevicePointerTrait<T> for CuDevicePointer<T>{
     /// # Examples
     ///
     /// ```
-    /// # let _context = cust::quick_init().unwrap();
-    /// use cust::memory::*;
+    /// # use cuda_backend as cuda;
+    /// use uhal::DriverLibraryTrait;
+    /// use uhal::memory::{DevicePointerTrait};
+    /// # let _context = cuda::CuApi::quick_init().unwrap();
+    /// use cuda::memory::*;
     /// unsafe {
-    ///     let mut dev_ptr = malloc::<u64>(5).unwrap();
+    ///     let mut dev_ptr = CuMemory::malloc::<u64>(5).unwrap();
     ///     let offset = dev_ptr.add(4).sub(3); // Points to the 2nd u64 in the buffer
-    ///     free(dev_ptr); // Must free the buffer using the original pointer
+    ///     CuMemory::free(dev_ptr); // Must free the buffer using the original pointer
     /// }
     #[allow(clippy::should_implement_trait)]
     unsafe fn sub(self, count: usize) -> Self
@@ -275,12 +290,15 @@ impl<T: DeviceCopy> DevicePointerTrait<T> for CuDevicePointer<T>{
     /// # Examples
     ///
     /// ```
-    /// # let _context = cust::quick_init().unwrap();
-    /// use cust::memory::*;
+    /// # use cuda_backend as cuda;
+    /// use uhal::DriverLibraryTrait;
+    /// use uhal::memory::{DevicePointerTrait};
+    /// # let _context = cuda::CuApi::quick_init().unwrap();
+    /// use cuda::memory::*;
     /// unsafe {
-    ///     let mut dev_ptr = malloc::<u64>(5).unwrap();
+    ///     let mut dev_ptr = CuMemory::malloc::<u64>(5).unwrap();
     ///     let offset = dev_ptr.wrapping_add(1); // Points to the 2nd u64 in the buffer
-    ///     free(dev_ptr); // Must free the buffer using the original pointer
+    ///     CuMemory::free(dev_ptr); // Must free the buffer using the original pointer
     /// }
     /// ```
     fn wrapping_add(self, count: usize) -> Self
@@ -307,12 +325,15 @@ impl<T: DeviceCopy> DevicePointerTrait<T> for CuDevicePointer<T>{
     /// # Examples
     ///
     /// ```
-    /// # let _context = cust::quick_init().unwrap();
-    /// use cust::memory::*;
+    /// # use cuda_backend as cuda;
+    /// use uhal::DriverLibraryTrait;
+    /// use uhal::memory::{DevicePointerTrait};
+    /// # let _context = cuda::CuApi::quick_init().unwrap();
+    /// use cuda::memory::*;
     /// unsafe {
-    ///     let mut dev_ptr = malloc::<u64>(5).unwrap();
+    ///     let mut dev_ptr = CuMemory::malloc::<u64>(5).unwrap();
     ///     let offset = dev_ptr.wrapping_add(4).wrapping_sub(3); // Points to the 2nd u64 in the buffer
-    ///     free(dev_ptr); // Must free the buffer using the original pointer
+    ///     CuMemory::free(dev_ptr); // Must free the buffer using the original pointer
     /// }
     /// ```
     fn wrapping_sub(self, count: usize) -> Self
