@@ -105,7 +105,7 @@ impl ModuleTrait for CuModule {
     ///
     /// The given path should be either a cubin file, a ptx file, or a fatbin file such as
     /// those produced by `nvcc`.
-    fn from_file<P: AsRef<Path>>(self, path: P) -> DeviceResult<Self::ModuleT>{
+    fn from_file<P: AsRef<Path>>(path: P) -> DeviceResult<Self::ModuleT>{
         unsafe {
             let mut bytes = path_to_bytes(path);
             if !bytes.contains(&0) {
@@ -127,13 +127,13 @@ impl ModuleTrait for CuModule {
     ///
     /// Fatbinary files are files that contain multiple ptx or cubin files. The driver will choose already-built
     /// cubin if it is present, and otherwise JIT compile any PTX in the file to cubin.
-    fn from_fatbin<G: AsRef<[u8]>>(self, 
+    fn from_fatbin<G: AsRef<[u8]>>( 
         bytes: G,
         options: &[ModuleJitOption],
     ) -> DeviceResult<Self::ModuleT>{
         // fatbins can be loaded just like cubins, we just use different methods so it's explicit.
         // please don't use from_cubin for fatbins, that is pure chaos and ferris will come to your house
-        self.from_cubin(bytes, options)
+        Self::from_cubin(bytes, options)
     }
 
     /// Creates a new module by loading a cubin (Device Binary) file.
@@ -141,7 +141,7 @@ impl ModuleTrait for CuModule {
     /// Cubins are architecture/compute-capability specific files generated as the final step of the Device compilation
     /// process. They cannot be interchanged across compute capabilities unlike PTX (to some degree). You can create one
     /// using the PTX compiler APIs, the cust [`Linker`](crate::link::Linker), or nvcc (`nvcc a.ptx --cubin -arch=sm_XX`).
-    fn from_cubin<G: AsRef<[u8]>>(self, bytes: G, options: &[ModuleJitOption]) -> DeviceResult<Self::ModuleT>{
+    fn from_cubin<G: AsRef<[u8]>>(bytes: G, options: &[ModuleJitOption]) -> DeviceResult<Self::ModuleT>{
         // it is very unclear whether cuda wants or doesn't want a null terminator. The method works
         // whether you have one or not. So for safety we just add one. In theory you can figure out the
         // length of an ELF image without a null terminator. But the docs are confusing, so we add one just
@@ -149,10 +149,10 @@ impl ModuleTrait for CuModule {
         let mut bytes = bytes.as_ref().to_vec();
         bytes.push(0);
         // SAFETY: the image is known to be dereferenceable
-        unsafe { self.load_module(bytes.as_ptr() as *const c_void, options) }
+        unsafe { Self::load_module(bytes.as_ptr() as *const c_void, options) }
     }
 
-    unsafe fn load_module(self, image: *const c_void, options: &[ModuleJitOption]) -> DeviceResult<Self::ModuleT>{
+    unsafe fn load_module(image: *const c_void, options: &[ModuleJitOption]) -> DeviceResult<Self::ModuleT>{
         let mut module = CuModule {
             0: ptr::null_mut(),
         };
@@ -171,9 +171,9 @@ impl ModuleTrait for CuModule {
     /// Creates a new module from a [`CStr`] pointing to PTX code.
     ///
     /// The driver will JIT the PTX into arch-specific cubin or pick already-cached cubin if available.
-    fn from_ptx_cstr(self, cstr: &CStr, options: &[ModuleJitOption]) -> DeviceResult<Self::ModuleT>{
+    fn from_ptx_cstr(cstr: &CStr, options: &[ModuleJitOption]) -> DeviceResult<Self::ModuleT>{
         // SAFETY: the image is known to be dereferenceable
-        unsafe { self.load_module(cstr.as_ptr() as *const c_void, options) }
+        unsafe { Self::load_module(cstr.as_ptr() as *const c_void, options) }
     }
 
     /// Creates a new module from a PTX string, allocating an intermediate buffer for the [`CString`].
@@ -183,10 +183,10 @@ impl ModuleTrait for CuModule {
     /// # Panics
     ///
     /// Panics if `string` contains a nul.
-    fn from_ptx<G: AsRef<str>>(self, string: G, options: &[ModuleJitOption]) -> DeviceResult<Self::ModuleT>{
+    fn from_ptx<G: AsRef<str>>(string: G, options: &[ModuleJitOption]) -> DeviceResult<Self::ModuleT>{
         let cstr = CString::new(string.as_ref())
             .expect("string given to Module::from_str contained nul bytes");
-        self.from_ptx_cstr(cstr.as_c_str(), options)
+        Self::from_ptx_cstr(cstr.as_c_str(), options)
     }
 
     /// Load a module from a normal (rust) string, implicitly making it into
@@ -196,11 +196,11 @@ impl ModuleTrait for CuModule {
     //     note = "from_str was too generic of a name, use from_ptx instead, passing an empty slice of options (usually)"
     // )]
     #[allow(clippy::should_implement_trait)]
-    fn from_str<G: AsRef<str>>(self, string: G) -> DeviceResult<Self::ModuleT>{
+    fn from_str<G: AsRef<str>>(string: G) -> DeviceResult<Self::ModuleT>{
         let cstr = CString::new(string.as_ref())
             .expect("string given to Module::from_str contained nul bytes");
         #[allow(deprecated)]
-        self.load_from_string(cstr.as_c_str())
+        Self::load_from_string(cstr.as_c_str())
     }
 
     /// Load a module from a CStr.
@@ -216,7 +216,7 @@ impl ModuleTrait for CuModule {
     // an empty slice of options (usually)
     // "
     // )]
-    fn load_from_string(self, image: &CStr) -> DeviceResult<Self::ModuleT>{
+    fn load_from_string(image: &CStr) -> DeviceResult<Self::ModuleT>{
         unsafe {
             let mut module = CuModule {
                 0: ptr::null_mut(),
@@ -260,7 +260,7 @@ impl CuModule {
     /// # Panics:
     ///
     /// This function panics if the size of the symbol is not the same as the `mem::sizeof<T>()`.
-    fn get_global<'a, T: DeviceCopy>(&'a self, name: &CStr) -> DeviceResult<CuSymbol<'a, T>>{
+    pub fn get_global<'a, T: DeviceCopy>(&'a self, name: &CStr) -> DeviceResult<CuSymbol<'a, T>>{
         unsafe {
             let mut ptr: CuDevicePointer<T> = CuDevicePointer::null();
             let mut size: usize = 0;
@@ -281,7 +281,7 @@ impl CuModule {
     }
 
     /// Get a reference to a kernel function which can then be launched.
-    fn get_function<'a, P: AsRef<str>>(&'a self, name: P) -> DeviceResult<CuFunction>{
+    pub fn get_function<'a, P: AsRef<str>>(&'a self, name: P) -> DeviceResult<CuFunction>{
         unsafe {
             let name = name.as_ref();
             let cstr = CString::new(name).expect("Argument to get_function had a nul");

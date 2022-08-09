@@ -94,13 +94,13 @@ pub trait ModuleTrait {
     ///
     /// The given path should be either a cubin file, a ptx file, or a fatbin file such as
     /// those produced by `nvcc`.
-    fn from_file<P: AsRef<Path>>(self, path: P) -> DeviceResult<Self::ModuleT>;
+    fn from_file<P: AsRef<Path>>(path: P) -> DeviceResult<Self::ModuleT>;
 
     /// Creates a new module by loading a fatbin (fat binary) file.
     ///
     /// Fatbinary files are files that contain multiple ptx or cubin files. The driver will choose already-built
     /// cubin if it is present, and otherwise JIT compile any PTX in the file to cubin.
-    fn from_fatbin<G: AsRef<[u8]>>(self,
+    fn from_fatbin<G: AsRef<[u8]>>(
         bytes: G,
         options: &[ModuleJitOption],
     ) -> DeviceResult<Self::ModuleT>;
@@ -110,14 +110,14 @@ pub trait ModuleTrait {
     /// Cubins are architecture/compute-capability specific files generated as the final step of the Device compilation
     /// process. They cannot be interchanged across compute capabilities unlike PTX (to some degree). You can create one
     /// using the PTX compiler APIs, the cust [`Linker`](crate::link::Linker), or nvcc (`nvcc a.ptx --cubin -arch=sm_XX`).
-    fn from_cubin<G: AsRef<[u8]>>(self, bytes: G, options: &[ModuleJitOption]) -> DeviceResult<Self::ModuleT>;
+    fn from_cubin<G: AsRef<[u8]>>(bytes: G, options: &[ModuleJitOption]) -> DeviceResult<Self::ModuleT>;
 
-    unsafe fn load_module(self, image: *const c_void, options: &[ModuleJitOption]) -> DeviceResult<Self::ModuleT>;
+    unsafe fn load_module(image: *const c_void, options: &[ModuleJitOption]) -> DeviceResult<Self::ModuleT>;
 
     /// Creates a new module from a [`CStr`] pointing to PTX code.
     ///
     /// The driver will JIT the PTX into arch-specific cubin or pick already-cached cubin if available.
-    fn from_ptx_cstr(self, cstr: &CStr, options: &[ModuleJitOption]) -> DeviceResult<Self::ModuleT>;
+    fn from_ptx_cstr(cstr: &CStr, options: &[ModuleJitOption]) -> DeviceResult<Self::ModuleT>;
 
     /// Creates a new module from a PTX string, allocating an intermediate buffer for the [`CString`].
     ///
@@ -126,7 +126,7 @@ pub trait ModuleTrait {
     /// # Panics
     ///
     /// Panics if `string` contains a nul.
-    fn from_ptx<G: AsRef<str>>(self, string: G, options: &[ModuleJitOption]) -> DeviceResult<Self::ModuleT>;
+    fn from_ptx<G: AsRef<str>>(string: G, options: &[ModuleJitOption]) -> DeviceResult<Self::ModuleT>;
 
     /// Load a module from a normal (rust) string, implicitly making it into
     /// a cstring.
@@ -135,7 +135,7 @@ pub trait ModuleTrait {
         note = "from_str was too generic of a name, use from_ptx instead, passing an empty slice of options (usually)"
     )]
     #[allow(clippy::should_implement_trait)]
-    fn from_str<G: AsRef<str>>(self, string: G) -> DeviceResult<Self::ModuleT>;
+    fn from_str<G: AsRef<str>>(string: G) -> DeviceResult<Self::ModuleT>;
 
     /// Load a module from a CStr.
     ///
@@ -150,7 +150,7 @@ pub trait ModuleTrait {
     an empty slice of options (usually)
     "
     )]
-    fn load_from_string(self, image: &CStr) -> DeviceResult<Self::ModuleT>;
+    fn load_from_string(image: &CStr) -> DeviceResult<Self::ModuleT>;
 
     /// Get a reference to a global symbol, which can then be copied to/from.
     ///
