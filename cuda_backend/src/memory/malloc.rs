@@ -56,7 +56,7 @@ impl CuMemory {
     {
         let size = count.checked_mul(mem::size_of::<T>()).unwrap_or(0);
         if size == 0 {
-            return Err(DeviceError::OutOfMemory);
+            return Err(DeviceError::InvalidMemoryAllocation);
         }
     
         let mut ptr = 0;
@@ -80,7 +80,7 @@ impl CuMemory {
     {
         let size = count.checked_mul(mem::size_of::<T>()).unwrap_or(0);
         if size == 0 {
-            return Err(DeviceError::OutOfMemory);
+            return Err(DeviceError::InvalidMemoryAllocation);
         }
     
         let mut ptr: *mut c_void = ptr::null_mut();
@@ -108,7 +108,7 @@ impl CuMemory {
     ) -> DeviceResult<()>
     {
         if mem::size_of::<T>() == 0 {
-            return Err(DeviceError::OutOfMemory);
+            return Err(DeviceError::InvalidMemoryAllocation);
         }
     
         driv::cuMemFreeAsync(p.as_raw(), stream.as_inner()).to_result()
@@ -145,11 +145,79 @@ impl CuMemory {
     pub unsafe fn free<T: DeviceCopy>(ptr: CuDevicePointer<T>) -> DeviceResult<()>
     {
         if ptr.is_null() {
-            return Err(DeviceError::OutOfMemory);
+            return Err(DeviceError::InvalidMemoryAllocation);
         }
     
         driv::cuMemFree_v2(ptr.as_raw()).to_result()?;
         Ok(())
+    }
+
+}
+
+
+#[cfg(test)]
+mod test {
+    use super::*;
+    use uhal::memory::{MemoryTrait};
+    use uhal::DriverLibraryTrait;
+
+    #[derive(Clone, Copy, Debug)]
+    struct ZeroSizedType;
+    unsafe impl DeviceCopy for ZeroSizedType {}
+
+    #[test]
+    fn test_cuda_malloc() {
+        let _context = crate::CuApi::quick_init().unwrap();
+        unsafe {
+            let device_mem = CuMemory::malloc::<u64>(1).unwrap();
+            assert!(!device_mem.is_null());
+            CuMemory::free(device_mem).unwrap();
+        }
+    }
+
+    #[test]
+    fn test_cuda_malloc_zero_bytes() {
+        let _context = crate::CuApi::quick_init().unwrap();
+        unsafe {
+            assert_eq!(
+                DeviceError::InvalidMemoryAllocation,
+                CuMemory::malloc::<u64>(0).unwrap_err()
+            );
+        }
+    }
+
+    #[test]
+    fn test_cuda_malloc_zero_sized() {
+        let _context = crate::CuApi::quick_init().unwrap();
+        unsafe {
+            assert_eq!(
+                DeviceError::InvalidMemoryAllocation,
+                CuMemory::malloc::<ZeroSizedType>(10).unwrap_err()
+            );
+        }
+    }
+
+    #[test]
+    fn test_cuda_alloc_overflow() {
+        let _context = crate::CuApi::quick_init().unwrap();
+        unsafe {
+            assert_eq!(
+                DeviceError::InvalidMemoryAllocation,
+                CuMemory::malloc::<u64>(::std::usize::MAX - 1).unwrap_err()
+            );
+        }
+    }
+
+
+    #[test]
+    fn test_cuda_free_null() {
+        let _context = crate::CuApi::quick_init().unwrap();
+        unsafe {
+            assert_eq!(
+                DeviceError::InvalidMemoryAllocation,
+                CuMemory::free(CuDevicePointer::<u64>::null()).unwrap_err()
+            );
+        }
     }
 
 }

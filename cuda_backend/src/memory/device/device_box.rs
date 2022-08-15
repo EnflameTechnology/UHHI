@@ -567,3 +567,99 @@ impl<T: DeviceCopy> AsyncCopyDestination<CuDeviceBox<T>> for CuDeviceBox<T> {
     }
 }
 
+
+#[cfg(test)]
+mod test_device_box {
+    use super::*;
+    use uhal::memory::{DeviceBoxTrait, DevicePointerTrait};
+    use uhal::DriverLibraryTrait;
+
+    #[derive(Clone, Copy, Debug)]
+    struct ZeroSizedType;
+    unsafe impl DeviceCopy for ZeroSizedType {}
+
+    #[test]
+    fn test_allocate_and_free_device_box() {
+        let _context = crate::CuApi::quick_init().unwrap();
+        let x = CuDeviceBox::new(&5u64).unwrap();
+        drop(x);
+    }
+
+    #[test]
+    fn test_device_box_allocates_for_non_zst() {
+        let _context = crate::CuApi::quick_init().unwrap();
+        let x = CuDeviceBox::new(&5u64).unwrap();
+        let ptr = CuDeviceBox::into_device(x);
+        assert!(!ptr.is_null());
+        let _ = unsafe { CuDeviceBox::from_device(ptr) };
+    }
+
+    #[test]
+    fn test_device_box_doesnt_allocate_for_zero_sized_type() {
+        let _context = crate::CuApi::quick_init().unwrap();
+        let x = CuDeviceBox::new(&ZeroSizedType).unwrap();
+        let ptr = CuDeviceBox::into_device(x);
+        assert!(ptr.is_null());
+        let _ = unsafe { CuDeviceBox::from_device(ptr) };
+    }
+
+    #[test]
+    fn test_into_from_device() {
+        let _context = crate::CuApi::quick_init().unwrap();
+        let x = CuDeviceBox::new(&5u64).unwrap();
+        let ptr = CuDeviceBox::into_device(x);
+        let _ = unsafe { CuDeviceBox::from_device(ptr) };
+    }
+
+    #[test]
+    fn test_copy_host_to_device() {
+        let _context = crate::CuApi::quick_init().unwrap();
+        let y = 5u64;
+        let mut x = CuDeviceBox::new(&0u64).unwrap();
+        x.copy_from(&y).unwrap();
+        let mut z = 10u64;
+        x.copy_to(&mut z).unwrap();
+        assert_eq!(y, z);
+    }
+
+    #[test]
+    fn test_copy_device_to_host() {
+        let _context = crate::CuApi::quick_init().unwrap();
+        let x = CuDeviceBox::new(&5u64).unwrap();
+        let mut y = 0u64;
+        x.copy_to(&mut y).unwrap();
+        assert_eq!(5, y);
+    }
+
+    #[test]
+    fn test_copy_device_to_device() {
+        let _context = crate::CuApi::quick_init().unwrap();
+        let x = CuDeviceBox::new(&5u64).unwrap();
+        let mut y = CuDeviceBox::new(&0u64).unwrap();
+        let mut z = CuDeviceBox::new(&0u64).unwrap();
+        x.copy_to(&mut y).unwrap();
+        z.copy_from(&y).unwrap();
+
+        let mut h = 0u64;
+        z.copy_to(&mut h).unwrap();
+        assert_eq!(5, h);
+    }
+
+    #[test]
+    fn test_device_pointer_implements_traits_safely() {
+        let _context = crate::CuApi::quick_init().unwrap();
+        let x = CuDeviceBox::new(&5u64).unwrap();
+        let y = CuDeviceBox::new(&0u64).unwrap();
+
+        // If the impls dereference the pointer, this should segfault.
+        let _ = Ord::cmp(&x.as_device_ptr(), &y.as_device_ptr());
+        let _ = PartialOrd::partial_cmp(&x.as_device_ptr(), &y.as_device_ptr());
+        let _ = PartialEq::eq(&x.as_device_ptr(), &y.as_device_ptr());
+
+        let mut hasher = std::collections::hash_map::DefaultHasher::new();
+        std::hash::Hash::hash(&x.as_device_ptr(), &mut hasher);
+
+        let _ = format!("{:?}", x.as_device_ptr());
+        let _ = format!("{:p}", x.as_device_ptr());
+    }
+}

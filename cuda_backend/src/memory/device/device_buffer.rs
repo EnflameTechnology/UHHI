@@ -476,3 +476,132 @@ impl<T: DeviceCopy> DerefMut for CuDeviceBuffer<T> {
 //     }
 // }
 
+
+#[cfg(test)]
+mod test_device_buffer {
+    use super::*;
+    use crate::stream::{CuStream};
+    use uhal::memory::{DeviceBufferTrait, DevicePointerTrait};
+    use uhal::DriverLibraryTrait;
+    use uhal::stream::{StreamFlags, StreamTrait};
+    
+
+    #[derive(Clone, Copy, Debug)]
+    struct ZeroSizedType;
+    unsafe impl DeviceCopy for ZeroSizedType {}
+
+    #[test]
+    fn test_from_slice_drop() {
+        let _context = crate::CuApi::quick_init().unwrap();
+        let buf = CuDeviceBuffer::from_slice(&[0u64, 1, 2, 3, 4, 5]).unwrap();
+        drop(buf);
+    }
+
+    #[test]
+    fn test_copy_to_from_device() {
+        let _context = crate::CuApi::quick_init().unwrap();
+        let start = [0u64, 1, 2, 3, 4, 5];
+        let mut end = [0u64, 0, 0, 0, 0, 0];
+        let buf = CuDeviceBuffer::from_slice(&start).unwrap();
+        buf.copy_to(&mut end).unwrap();
+        assert_eq!(start, end);
+    }
+
+    #[test]
+    fn test_async_copy_to_from_device() {
+        let _context = crate::CuApi::quick_init().unwrap();
+        let stream = CuStream::new(StreamFlags::NON_BLOCKING, None).unwrap();
+        let start = [0u64, 1, 2, 3, 4, 5];
+        let mut end = [0u64, 0, 0, 0, 0, 0];
+        unsafe {
+            let buf = CuDeviceBuffer::from_slice_async(&start, &stream).unwrap();
+            buf.async_copy_to(&mut end, &stream).unwrap();
+        }
+        stream.synchronize().unwrap();
+        assert_eq!(start, end);
+    }
+
+    #[test]
+    #[should_panic]
+    fn test_copy_to_d2h_wrong_size() {
+        let _context = crate::CuApi::quick_init().unwrap();
+        let buf = CuDeviceBuffer::from_slice(&[0u64, 1, 2, 3, 4, 5]).unwrap();
+        let mut end = [0u64, 1, 2, 3, 4];
+        let _ = buf.copy_to(&mut end);
+    }
+
+    #[test]
+    #[should_panic]
+    fn test_async_copy_to_d2h_wrong_size() {
+        let _context = crate::CuApi::quick_init().unwrap();
+        let stream = CuStream::new(StreamFlags::NON_BLOCKING, None).unwrap();
+        unsafe {
+            let buf = CuDeviceBuffer::from_slice_async(&[0u64, 1, 2, 3, 4, 5], &stream).unwrap();
+            let mut end = [0u64, 1, 2, 3, 4];
+            let _ = buf.async_copy_to(&mut end, &stream);
+        }
+    }
+
+    #[test]
+    #[should_panic]
+    fn test_copy_from_h2d_wrong_size() {
+        let _context = crate::CuApi::quick_init().unwrap();
+        let start = [0u64, 1, 2, 3, 4];
+        let mut buf = CuDeviceBuffer::from_slice(&[0u64, 1, 2, 3, 4, 5]).unwrap();
+        let _ = buf.copy_from(&start);
+    }
+
+    #[test]
+    #[should_panic]
+    fn test_async_copy_from_h2d_wrong_size() {
+        let _context = crate::CuApi::quick_init().unwrap();
+        let stream = CuStream::new(StreamFlags::NON_BLOCKING, None).unwrap();
+        let start = [0u64, 1, 2, 3, 4];
+        unsafe {
+            let mut buf = CuDeviceBuffer::from_slice_async(&[0u64, 1, 2, 3, 4, 5], &stream).unwrap();
+            let _ = buf.async_copy_from(&start, &stream);
+        }
+    }
+
+    #[test]
+    #[should_panic]
+    fn test_copy_to_d2d_wrong_size() {
+        let _context = crate::CuApi::quick_init().unwrap();
+        let buf = CuDeviceBuffer::from_slice(&[0u64, 1, 2, 3, 4, 5]).unwrap();
+        let mut end = CuDeviceBuffer::from_slice(&[0u64, 1, 2, 3, 4]).unwrap();
+        let _ = buf.copy_to(&mut end);
+    }
+
+    #[test]
+    #[should_panic]
+    fn test_async_copy_to_d2d_wrong_size() {
+        let _context = crate::CuApi::quick_init().unwrap();
+        let stream = CuStream::new(StreamFlags::NON_BLOCKING, None).unwrap();
+        unsafe {
+            let buf = CuDeviceBuffer::from_slice_async(&[0u64, 1, 2, 3, 4, 5], &stream).unwrap();
+            let mut end = CuDeviceBuffer::from_slice_async(&[0u64, 1, 2, 3, 4], &stream).unwrap();
+            let _ = buf.async_copy_to(&mut end, &stream);
+        }
+    }
+
+    #[test]
+    #[should_panic]
+    fn test_copy_from_d2d_wrong_size() {
+        let _context = crate::CuApi::quick_init().unwrap();
+        let mut buf = CuDeviceBuffer::from_slice(&[0u64, 1, 2, 3, 4, 5]).unwrap();
+        let start = CuDeviceBuffer::from_slice(&[0u64, 1, 2, 3, 4]).unwrap();
+        let _ = buf.copy_from(&start);
+    }
+
+    #[test]
+    #[should_panic]
+    fn test_async_copy_from_d2d_wrong_size() {
+        let _context = crate::CuApi::quick_init().unwrap();
+        let stream = CuStream::new(StreamFlags::NON_BLOCKING, None).unwrap();
+        unsafe {
+            let mut buf = CuDeviceBuffer::from_slice_async(&[0u64, 1, 2, 3, 4, 5], &stream).unwrap();
+            let start = CuDeviceBuffer::from_slice_async(&[0u64, 1, 2, 3, 4], &stream).unwrap();
+            let _ = buf.async_copy_from(&start, &stream);
+        }
+    }
+}

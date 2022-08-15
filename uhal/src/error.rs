@@ -77,7 +77,11 @@ pub enum DeviceError {
     LaunchFailed = 719,
     NotPermitted = 800,
     NotSupported = 801,
-    UnknownError = 999
+    UnknownError = 999,
+
+    // Self-defined device error
+    InvalidMemoryAllocation = 100_100,
+    OptixError = 100_101,
 }
 // impl Error for DeviceError {}
 /// Result type for most Device functions.
