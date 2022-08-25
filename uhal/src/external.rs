@@ -1,6 +1,6 @@
 //! External memory and synchronization resources
 
-use cust_core::DeviceCopy;
+// use cust_core::DeviceCopy;
 
 use crate::error::{DeviceResult};
 // use crate::memory::{DevicePointer};

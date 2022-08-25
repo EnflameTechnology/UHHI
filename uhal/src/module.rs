@@ -2,7 +2,7 @@
 
 // use cust_core::DeviceCopy;
 
-use cust_core::DeviceCopy;
+// use cust_core::DeviceCopy;
 
 use crate::error::{DeviceResult, DropResult};
 // use crate::function::Function;

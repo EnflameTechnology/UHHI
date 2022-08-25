@@ -14,7 +14,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     // Set up the context, load the module, and create a stream to run kernels in.
     let _ctx = cuda::CuApi::quick_init()?;
 
-    let ptx = "../../add.ptx".to_string();
+    let ptx = "./resources/add.ptx".to_string();
     let module = CuModule::from_file(&ptx)?;
     let stream = CuStream::new(StreamFlags::NON_BLOCKING, None)?;
 
