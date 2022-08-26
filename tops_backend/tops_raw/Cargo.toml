@@ -1,0 +1,11 @@
+[package]
+name = "tops_raw"
+version = "0.1.1"
+edition = "2021"
+license = "MIT OR Apache-2.0"
+description = "Low level bindings to the TOPS Driver API"
+repository = "https://github.com/guoqingbao/UHHI"
+readme = "../../README.md"
+
+[build-dependencies]
+#find_cuda_helper = { path = "../find_cuda_helper", version = "0.2" }
