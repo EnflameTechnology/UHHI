@@ -1,0 +1,8 @@
+[workspace]
+
+members = [
+  "uhal",
+  "cuda_backend",
+  "common_features/cust_core",
+  "common_features/cust_derive",
+]

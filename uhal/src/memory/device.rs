@@ -24,12 +24,11 @@ pub trait DeviceVariableTrait<T: DeviceCopy> {
     fn as_device_ptr(&self) -> Self::DevicePointerT;
 }
 
-
 #[cfg(feature = "bytemuck")]
 pub trait DeviceSliceTrait {
     type StreamT;
     type DevicePointerT;
-    
+
     // NOTE(RDambrosio016): async memsets kind of blur the line between safe and unsafe, the only
     // unsafe thing i can imagine could happen is someone allocs a buffer, launches an async memset, then
     // tries to read back the value. However, it is unclear whether this is actually UB. Even if the
@@ -116,7 +115,6 @@ pub trait DeviceSliceTrait {
     unsafe fn set_32_async(&mut self, value: u32, stream: &Self::StreamT) -> DeviceResult<()>;
 }
 
-
 pub trait DeviceBufferTrait<T: DeviceCopy> {
     type StreamT;
     type DevicePointerT;
@@ -150,7 +148,10 @@ pub trait DeviceBufferTrait<T: DeviceCopy> {
     /// only enqueing kernel launches that use the memory AFTER the allocation call.
     ///
     /// You can synchronize the stream to ensure the memory allocation operation is complete.
-    unsafe fn uninitialized_async(size: usize, stream: &Self::StreamT) -> DeviceResult<Self::DeviceBufferT>;
+    unsafe fn uninitialized_async(
+        size: usize,
+        stream: &Self::StreamT,
+    ) -> DeviceResult<Self::DeviceBufferT>;
 
     /// Enqueues an operation to free the memory backed by this [`DeviceBuffer`] on a
     /// particular stream. The stream will free the allocation as soon as it reaches
@@ -210,12 +211,14 @@ pub trait DeviceBufferTrait<T: DeviceCopy> {
     /// # Errors
     ///
     /// If the allocation fails, returns the error from CUDA.
-    unsafe fn from_slice_async(slice: &[T], stream: &Self::StreamT) -> DeviceResult<Self::DeviceBufferT>;
+    unsafe fn from_slice_async(
+        slice: &[T],
+        stream: &Self::StreamT,
+    ) -> DeviceResult<Self::DeviceBufferT>;
 
     /// Explicitly creates a [`DeviceSlice`] from this buffer.
     fn as_slice(&self) -> &Self::DeviceSliceT;
 }
-
 
 pub trait DeviceBoxTrait<T: DeviceCopy> {
     type DeviceBoxT;

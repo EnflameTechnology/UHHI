@@ -3,12 +3,12 @@
 // use uhal::{DeviceResult, ToResult, Device, Devices, DeviceTrait, DeviceAttribute};
 pub use cust_raw as driv;
 
-use uhal::error::{DeviceResult};
-use uhal::device::{DeviceTrait, DeviceAttribute};
-use driv::{CUuuid, CUdevice};
+use crate::error::ToResult;
+use driv::{CUdevice, CUuuid};
 use std::ffi::CStr;
 use std::ops::Range;
-use crate::error::ToResult;
+use uhal::device::{DeviceAttribute, DeviceTrait};
+use uhal::error::DeviceResult;
 
 /// Opaque handle to a Device device.
 #[derive(Debug, Clone, Copy, Hash, Eq, PartialEq)]
@@ -28,19 +28,18 @@ impl Iterator for CuDevices {
     }
 }
 impl CuDevice {
-    pub fn new(d : CUdevice) -> Self
-    {
-        CuDevice {0 : d}
+    pub fn new(d: CUdevice) -> Self {
+        CuDevice { 0: d }
     }
 }
-impl DeviceTrait for CuDevice{
+impl DeviceTrait for CuDevice {
     type DeviceT = CuDevice;
     type DevicesT = CuDevices;
     type RawDeviceT = CUdevice;
     /// Get the number of devices.
     /// Returns the number of devices with compute-capability 2.0 or greater which are available
     /// for execution.
-    fn num_devices() -> DeviceResult<u32>{
+    fn num_devices() -> DeviceResult<u32> {
         unsafe {
             let mut num_devices = 0i32;
             driv::cuDeviceGetCount(&mut num_devices as *mut i32).to_result()?;
@@ -50,23 +49,24 @@ impl DeviceTrait for CuDevice{
 
     /// Get a handle to the `ordinal`'th device.
     /// Ordinal must be in the range `0..num_devices()`. If not, an error will be returned.
-    fn get_device(ordinal: u32) -> DeviceResult<Self::DeviceT>{
+    fn get_device(ordinal: u32) -> DeviceResult<Self::DeviceT> {
         unsafe {
             let mut device = Self::DeviceT { 0: 0 };
-            driv::cuDeviceGet(&mut device.0 as *mut Self::RawDeviceT, ordinal as i32).to_result()?;
+            driv::cuDeviceGet(&mut device.0 as *mut Self::RawDeviceT, ordinal as i32)
+                .to_result()?;
             Ok(device)
         }
     }
 
     /// Return an iterator over all devices.
-    fn devices() -> DeviceResult<Self::DevicesT>{
+    fn devices() -> DeviceResult<Self::DevicesT> {
         CuDevice::num_devices().map(|num_devices| Self::DevicesT {
             range: 0..num_devices,
         })
     }
 
     /// Returns the total amount of memory available on the device in bytes.
-    fn total_memory(self) -> DeviceResult<usize>{
+    fn total_memory(self) -> DeviceResult<usize> {
         unsafe {
             let mut memory = 0;
             driv::cuDeviceTotalMem_v2(&mut memory as *mut usize, self.0).to_result()?;
@@ -75,7 +75,7 @@ impl DeviceTrait for CuDevice{
     }
 
     /// Returns the name of this device.
-    fn name(self) -> DeviceResult<String>{
+    fn name(self) -> DeviceResult<String> {
         unsafe {
             let mut name = [0u8; 128]; // Hopefully this is big enough...
             driv::cuDeviceGetName(
@@ -95,7 +95,7 @@ impl DeviceTrait for CuDevice{
     }
 
     /// Returns the UUID of this device.
-    fn uuid(self) -> DeviceResult<[u8; 16]>{
+    fn uuid(self) -> DeviceResult<[u8; 16]> {
         let mut cu_uuid = CUuuid { bytes: [0i8; 16] };
         unsafe {
             driv::cuDeviceGetUuid(&mut cu_uuid, self.0).to_result()?;
@@ -105,7 +105,7 @@ impl DeviceTrait for CuDevice{
     }
 
     /// Returns information about this device.
-    fn get_attribute(self, attr: DeviceAttribute) -> DeviceResult<i32>{
+    fn get_attribute(self, attr: DeviceAttribute) -> DeviceResult<i32> {
         unsafe {
             let mut val = 0i32;
             driv::cuDeviceGetAttribute(
@@ -124,11 +124,7 @@ impl DeviceTrait for CuDevice{
     fn as_raw(&self) -> Self::RawDeviceT {
         self.0
     }
-
 }
-
-
-
 
 #[cfg(test)]
 mod test {

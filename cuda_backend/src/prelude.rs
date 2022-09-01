@@ -9,7 +9,7 @@
 // pub use crate::external::*;
 // pub use crate::function::Function;
 // pub use crate::memory::{
-//     CopyDestination, DeviceBuffer, DevicePointer, DeviceSlice, DeviceVariable, 
+//     CopyDestination, DeviceBuffer, DevicePointer, DeviceSlice, DeviceVariable,
 // };
 // pub use crate::module::Module;
 // pub use crate::stream::{Stream, StreamFlags};

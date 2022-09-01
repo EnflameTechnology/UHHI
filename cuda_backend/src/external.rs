@@ -1,10 +1,10 @@
 //! External memory and synchronization resources
+pub use cust_core::_hidden::DeviceCopy;
 pub use cust_raw as driv;
-use driv::{CUexternalMemory};
-pub use cust_core::_hidden::{DeviceCopy};
-use uhal::external::{ExternalMemoryTrait};
+use driv::CUexternalMemory;
+use uhal::external::ExternalMemoryTrait;
 // use uhal::memory::{CuDevicePointer};
-use uhal::error::{DeviceResult};
+use uhal::error::DeviceResult;
 use uhal::memory::DevicePointerTrait;
 
 use crate::memory::CuDevicePointer;
@@ -15,14 +15,13 @@ use crate::error::ToResult;
 //     pub inner : T,
 // }
 
-
-impl ExternalMemoryTrait for CuExternalMemory{
+impl ExternalMemoryTrait for CuExternalMemory {
     type ExternalMemoryT = CuExternalMemory;
     // type DevicePointerT = CuDevicePointer<>;
     // type DevicePointerT = CuDevicePointer<T: DeviceCopy>;
     // Import an external memory referenced by `fd` with `size`
     #[allow(clippy::missing_safety_doc)]
-    unsafe fn import(fd: i32, size: usize) -> DeviceResult<Self::ExternalMemoryT>{
+    unsafe fn import(fd: i32, size: usize) -> DeviceResult<Self::ExternalMemoryT> {
         let desc = driv::CUDA_EXTERNAL_MEMORY_HANDLE_DESC {
             type_: driv::CUexternalMemoryHandleType_enum::CU_EXTERNAL_MEMORY_HANDLE_TYPE_OPAQUE_FD,
             handle: driv::CUDA_EXTERNAL_MEMORY_HANDLE_DESC_st__bindgen_ty_1 { fd },
@@ -35,17 +34,16 @@ impl ExternalMemoryTrait for CuExternalMemory{
 
         driv::cuImportExternalMemory(&mut memory, &desc)
             .to_result()
-            .map(|_| CuExternalMemory{0: memory})
+            .map(|_| CuExternalMemory { 0: memory })
     }
 
     #[allow(clippy::missing_safety_doc)]
-    unsafe fn reimport(&mut self, fd: i32, size: usize) -> DeviceResult<()>{
+    unsafe fn reimport(&mut self, fd: i32, size: usize) -> DeviceResult<()> {
         // import new memory - this will call drop to destroy the old one
         *self = Self::import(fd, size)?;
 
         Ok(())
     }
-
 }
 
 impl CuExternalMemory {
@@ -54,8 +52,7 @@ impl CuExternalMemory {
         &self,
         size_in_bytes: usize,
         offset_in_bytes: usize,
-    ) -> DeviceResult<CuDevicePointer<G>>
-    {
+    ) -> DeviceResult<CuDevicePointer<G>> {
         let buffer_desc = driv::CUDA_EXTERNAL_MEMORY_BUFFER_DESC {
             flags: 0,
             size: size_in_bytes as u64,

@@ -74,12 +74,12 @@ pub mod stream;
 
 use uhal::device::DeviceTrait;
 // pub use cust_raw as driv;
-use uhal::{Flags, DriverLibraryTrait};
-use uhal::error::{DeviceResult};
+use uhal::error::DeviceResult;
+use uhal::{DriverLibraryTrait, Flags};
 // use uhal::device::{DeviceTrait};
-use uhal::context::{ContextFlags, ContextTrait};
 use crate::device::CuDevice;
 use error::ToResult;
+use uhal::context::{ContextFlags, ContextTrait};
 
 /// Struct representing the API version number.
 #[derive(Debug, Hash, Eq, PartialEq, Ord, PartialOrd, Copy, Clone)]
@@ -108,14 +108,13 @@ impl DriverLibraryTrait for CuApi {
     /// complex needs (multiple devices, custom flags, etc.) should use `init` and create their own
     /// context.
     #[must_use = "The Context must be kept alive or errors will be issued for any function that is run"]
-    fn quick_init() -> DeviceResult<Self::ContextT>
-    {
+    fn quick_init() -> DeviceResult<Self::ContextT> {
         CuApi::init(Flags::empty())?;
         let device = CuDevice::get_device(0)?;
         let ctx = CuContext::new(device)?;
         ctx.set_flags(ContextFlags::SCHED_AUTO)?;
         Ok(ctx)
-    } 
+    }
 
     /// Returns the latest version supported by the driver.
     fn get_api_version(self) -> DeviceResult<Self::ApiVersionT> {

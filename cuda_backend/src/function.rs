@@ -1,15 +1,15 @@
 //! Functions and types for working with Device kernels.
 pub use cust_raw as driv;
 use uhal::context::{CacheConfig, SharedMemoryConfig};
-use uhal::function::{FunctionAttribute, GridSize, BlockSize, FunctionTrait};
+use uhal::function::{BlockSize, FunctionAttribute, FunctionTrait, GridSize};
 // use uhal::module::{Module};
-use uhal::error::{DeviceResult};
+use uhal::error::DeviceResult;
 
-use crate::driv::{CUfunction};
+use crate::driv::CUfunction;
+use crate::error::ToResult;
 use crate::module::CuModule;
 use std::marker::PhantomData;
 use std::mem::{transmute, MaybeUninit};
-use crate::error::ToResult;
 
 /// Handle to a global kernel function.
 #[derive(Debug)]
@@ -18,7 +18,6 @@ pub struct CuFunction<'a> {
     pub module: PhantomData<&'a CuModule>,
 }
 
-
 unsafe impl<'a> Send for CuFunction<'a> {}
 unsafe impl<'a> Sync for CuFunction<'a> {}
 
@@ -26,7 +25,7 @@ impl<'a> FunctionTrait for CuFunction<'a> {
     type FunctionT = CuFunction<'a>;
     type ModuleT = CuModule;
     type RawFunctionT = CUfunction;
-    fn new(inner: Self::RawFunctionT, _module: &Self::ModuleT) -> Self::FunctionT{
+    fn new(inner: Self::RawFunctionT, _module: &Self::ModuleT) -> Self::FunctionT {
         Self::FunctionT {
             inner,
             module: PhantomData,
@@ -34,7 +33,7 @@ impl<'a> FunctionTrait for CuFunction<'a> {
     }
 
     /// Returns information about a function.
-    fn get_attribute(&self, attr: FunctionAttribute) -> DeviceResult<i32>{
+    fn get_attribute(&self, attr: FunctionAttribute) -> DeviceResult<i32> {
         unsafe {
             let mut val = 0i32;
             driv::cuFuncGetAttribute(
@@ -58,9 +57,8 @@ impl<'a> FunctionTrait for CuFunction<'a> {
     ///
     /// This setting does nothing on devices where the size of the L1 cache and shared memory are
     /// fixed.
-    fn set_cache_config(&mut self, config: CacheConfig) -> DeviceResult<()>{
+    fn set_cache_config(&mut self, config: CacheConfig) -> DeviceResult<()> {
         unsafe { driv::cuFuncSetCacheConfig(self.inner, transmute(config)).to_result() }
-
     }
 
     /// Sets the preferred shared memory configuration for this function.
@@ -68,9 +66,8 @@ impl<'a> FunctionTrait for CuFunction<'a> {
     /// On devices with configurable shared memory banks, this function will set this function's
     /// shared memory bank size which is used for subsequent launches of this function. If not set,
     /// the context-wide setting will be used instead.
-    fn set_shared_memory_config(&mut self, cfg: SharedMemoryConfig) -> DeviceResult<()>{
+    fn set_shared_memory_config(&mut self, cfg: SharedMemoryConfig) -> DeviceResult<()> {
         unsafe { driv::cuFuncSetSharedMemConfig(self.inner, transmute(cfg)).to_result() }
-
     }
 
     /// Retrieves a raw handle to this function.
@@ -84,7 +81,7 @@ impl<'a> FunctionTrait for CuFunction<'a> {
         &self,
         blocks: GridSize,
         block_size: BlockSize,
-    ) -> DeviceResult<usize>{
+    ) -> DeviceResult<usize> {
         let num_blocks = blocks.x * blocks.y * blocks.z;
         let total_block_size = block_size.x * block_size.y * block_size.z;
 
@@ -107,7 +104,7 @@ impl<'a> FunctionTrait for CuFunction<'a> {
         &self,
         block_size: BlockSize,
         dynamic_smem_size: usize,
-    ) -> DeviceResult<u32>{
+    ) -> DeviceResult<u32> {
         let total_block_size = block_size.x * block_size.y * block_size.z;
 
         let mut num_blocks = MaybeUninit::uninit();
@@ -142,7 +139,7 @@ impl<'a> FunctionTrait for CuFunction<'a> {
         &self,
         dynamic_smem_size: usize,
         block_size_limit: BlockSize,
-    ) -> DeviceResult<(u32, u32)>{
+    ) -> DeviceResult<(u32, u32)> {
         let mut min_grid_size = MaybeUninit::uninit();
         let mut block_size = MaybeUninit::uninit();
 

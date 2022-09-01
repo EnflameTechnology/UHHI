@@ -46,13 +46,13 @@ pub use self::device::*;
 pub use self::malloc::*;
 pub use self::pointer::*;
 // use crate::error::*;
-pub use cust_raw as driv;
-use std::ffi::c_void;
-pub use cust_core::_hidden::{DeviceCopy};
-pub use driv::{CUdeviceptr};
-use uhal::error::{DeviceResult};
-use uhal::memory::{MemCpyTrait};
 use crate::error::ToResult;
+pub use cust_core::_hidden::DeviceCopy;
+pub use cust_raw as driv;
+pub use driv::CUdeviceptr;
+use std::ffi::c_void;
+use uhal::error::DeviceResult;
+use uhal::memory::MemCpyTrait;
 pub struct CuMemCpy;
 
 impl MemCpyTrait for CuMemCpy {
@@ -62,32 +62,29 @@ impl MemCpyTrait for CuMemCpy {
         d_ptr: Self::RawDevicePointerT,
         src_ptr: *const c_void,
         size: usize,
-    ) -> DeviceResult<()>
-    {
+    ) -> DeviceResult<()> {
         driv::cuMemcpyHtoD_v2(d_ptr, src_ptr, size).to_result()?;
         Ok(())
     }
-    
+
     /// Simple wrapper over MemcpyDtoH
     #[allow(clippy::missing_safety_doc)]
     unsafe fn memcpy_dtoh(
         d_ptr: *mut c_void,
         src_ptr: Self::RawDevicePointerT,
         size: usize,
-    ) -> DeviceResult<()>
-    {
+    ) -> DeviceResult<()> {
         driv::cuMemcpyDtoH_v2(d_ptr, src_ptr, size).to_result()?;
         Ok(())
     }
-    
+
     /// Get the current free and total memory.
     ///
     /// Returns in `.1` the total amount of memory available to the the current context.
     /// Returns in `.0` the amount of memory on the device that is free according to
     /// the OS. Device is not guaranteed to be able to allocate all of the memory that
     /// the OS reports as free.
-    fn mem_get_info() -> DeviceResult<(usize, usize)>
-    {
+    fn mem_get_info() -> DeviceResult<(usize, usize)> {
         let mut mem_free = 0;
         let mut mem_total = 0;
         unsafe {
@@ -96,4 +93,3 @@ impl MemCpyTrait for CuMemCpy {
         Ok((mem_free, mem_total))
     }
 }
-

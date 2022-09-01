@@ -1,22 +1,22 @@
 pub use cust_raw as driv;
 use driv::CUstream;
-use uhal::memory::{DeviceBufferTrait, MemoryTrait, DevicePointerTrait};
 use uhal::error::{DeviceResult, DropResult};
+use uhal::memory::{DeviceBufferTrait, DevicePointerTrait, MemoryTrait};
 // use uhal::stream::{Stream};
-pub use cust_core::_hidden::{DeviceCopy};
-use uhal::stream::StreamTrait;
-use std::ops::{Deref, DerefMut};
 use crate::error::ToResult;
 #[cfg(feature = "bytemuck")]
 pub use bytemuck;
 #[cfg(feature = "bytemuck")]
 use bytemuck::{Pod, PodCastError, Zeroable};
+pub use cust_core::_hidden::DeviceCopy;
 use std::mem::{self, align_of, size_of, transmute, ManuallyDrop};
+use std::ops::{Deref, DerefMut};
+use uhal::stream::StreamTrait;
 
 use crate::memory::{CuDevicePointer, CuMemCpy, CuMemory};
 use crate::stream::CuStream;
 
-use super::{CuDeviceSlice, CopyDestination, AsyncCopyDestination};
+use super::{AsyncCopyDestination, CopyDestination, CuDeviceSlice};
 
 /// Fixed-size device-side buffer. Provides basic access to device memory.
 #[derive(Debug)]
@@ -25,7 +25,6 @@ pub struct CuDeviceBuffer<T: DeviceCopy> {
     buf: CuDevicePointer<T>,
     len: usize,
 }
-
 
 unsafe impl<T: Send + DeviceCopy> Send for CuDeviceBuffer<T> {}
 unsafe impl<T: Sync + DeviceCopy> Sync for CuDeviceBuffer<T> {}
@@ -60,8 +59,7 @@ impl<T: DeviceCopy> DeviceBufferTrait<T> for CuDeviceBuffer<T> {
     /// let mut buffer = unsafe { CuDeviceBuffer::uninitialized(5).unwrap() };
     /// buffer.copy_from(&[0u64, 1, 2, 3, 4]).unwrap();
     /// ```
-    unsafe fn uninitialized(size: usize) -> DeviceResult<Self::DeviceBufferT>
-    {
+    unsafe fn uninitialized(size: usize) -> DeviceResult<Self::DeviceBufferT> {
         let ptr = if size > 0 && size_of::<T>() > 0 {
             CuMemory::malloc(size)?
         } else {
@@ -86,8 +84,10 @@ impl<T: DeviceCopy> DeviceBufferTrait<T> for CuDeviceBuffer<T> {
     /// only enqueing kernel launches that use the memory AFTER the allocation call.
     ///
     /// You can synchronize the stream to ensure the memory allocation operation is complete.
-    unsafe fn uninitialized_async(size: usize, stream: &Self::StreamT) -> DeviceResult<Self::DeviceBufferT>
-    {
+    unsafe fn uninitialized_async(
+        size: usize,
+        stream: &Self::StreamT,
+    ) -> DeviceResult<Self::DeviceBufferT> {
         let ptr = if size > 0 && size_of::<T>() > 0 {
             CuMemory::malloc_async(stream, size)?
         } else {
@@ -134,8 +134,7 @@ impl<T: DeviceCopy> DeviceBufferTrait<T> for CuDeviceBuffer<T> {
     /// # Ok(())
     /// # }
     /// ```
-    fn drop_async(self, stream: &Self::StreamT) -> DeviceResult<()>
-    {
+    fn drop_async(self, stream: &Self::StreamT) -> DeviceResult<()> {
         if self.buf.is_null() {
             return Ok(());
         }
@@ -214,8 +213,7 @@ impl<T: DeviceCopy> DeviceBufferTrait<T> for CuDeviceBuffer<T> {
     ///     },
     /// }
     /// ```
-    fn drop(mut dev_buf: Self::DeviceBufferT) -> DropResult<Self::DeviceBufferT>
-    {
+    fn drop(mut dev_buf: Self::DeviceBufferT) -> DropResult<Self::DeviceBufferT> {
         if dev_buf.buf.is_null() {
             return Ok(());
         }
@@ -255,10 +253,9 @@ impl<T: DeviceCopy> DeviceBufferTrait<T> for CuDeviceBuffer<T> {
     /// let values = [0u64; 5];
     /// let mut buffer = CuDeviceBuffer::from_slice(&values).unwrap();
     /// ```
-    fn from_slice(slice: &[T]) -> DeviceResult<Self::DeviceBufferT>
-    {
+    fn from_slice(slice: &[T]) -> DeviceResult<Self::DeviceBufferT> {
         unsafe {
-            let mut uninit =CuDeviceBuffer::uninitialized(slice.len())?;
+            let mut uninit = CuDeviceBuffer::uninitialized(slice.len())?;
             uninit.copy_from(slice)?;
             Ok(uninit)
         }
@@ -294,23 +291,23 @@ impl<T: DeviceCopy> DeviceBufferTrait<T> for CuDeviceBuffer<T> {
     ///     // Perform some operation on the buffer
     /// }
     /// ```
-    unsafe fn from_slice_async(slice: &[T], stream: &Self::StreamT) -> DeviceResult<Self::DeviceBufferT>
-    {
+    unsafe fn from_slice_async(
+        slice: &[T],
+        stream: &Self::StreamT,
+    ) -> DeviceResult<Self::DeviceBufferT> {
         let mut uninit = CuDeviceBuffer::uninitialized_async(slice.len(), stream)?;
         uninit.async_copy_from(slice, stream)?;
         Ok(uninit)
     }
 
     /// Explicitly creates a [`DeviceSlice`] from this buffer.
-    fn as_slice(&self) -> &Self::DeviceSliceT
-    {
+    fn as_slice(&self) -> &Self::DeviceSliceT {
         self
     }
 }
 
 #[cfg(feature = "bytemuck")]
 impl<T: DeviceCopy + Zeroable> CuDeviceBuffer<T> {
-    
     // type DeviceBufferT = CuDeviceBuffer<T>;
     // type StreamT = CuStream;
     /// Allocate device memory and fill it with zeroes (`0u8`).
@@ -331,8 +328,7 @@ impl<T: DeviceCopy + Zeroable> CuDeviceBuffer<T> {
     /// assert_eq!(values, [0; 4]);
     /// ```
     #[cfg_attr(docsrs, doc(cfg(feature = "bytemuck")))]
-    pub fn zeroed(size: usize) -> DeviceResult<CuDeviceBuffer<T>>
-    {
+    pub fn zeroed(size: usize) -> DeviceResult<CuDeviceBuffer<T>> {
         unsafe {
             let new_buf = CuDeviceBuffer::uninitialized(size)?;
             if size_of::<T>() != 0 {
@@ -377,8 +373,7 @@ impl<T: DeviceCopy + Zeroable> CuDeviceBuffer<T> {
     /// # }
     /// ```
     #[cfg_attr(docsrs, doc(cfg(feature = "bytemuck")))]
-    pub unsafe fn zeroed_async(size: usize, stream: &CuStream) -> DeviceResult<CuDeviceBuffer<T>>
-    {
+    pub unsafe fn zeroed_async(size: usize, stream: &CuStream) -> DeviceResult<CuDeviceBuffer<T>> {
         let new_buf = CuDeviceBuffer::uninitialized_async(size, stream)?;
         if size_of::<T>() != 0 {
             driv::cuMemsetD8Async(
@@ -476,15 +471,13 @@ impl<T: DeviceCopy> DerefMut for CuDeviceBuffer<T> {
 //     }
 // }
 
-
 #[cfg(test)]
 mod test_device_buffer {
     use super::*;
-    use crate::stream::{CuStream};
+    use crate::stream::CuStream;
     use uhal::memory::{DeviceBufferTrait, DevicePointerTrait};
-    use uhal::DriverLibraryTrait;
     use uhal::stream::{StreamFlags, StreamTrait};
-    
+    use uhal::DriverLibraryTrait;
 
     #[derive(Clone, Copy, Debug)]
     struct ZeroSizedType;
@@ -558,7 +551,8 @@ mod test_device_buffer {
         let stream = CuStream::new(StreamFlags::NON_BLOCKING, None).unwrap();
         let start = [0u64, 1, 2, 3, 4];
         unsafe {
-            let mut buf = CuDeviceBuffer::from_slice_async(&[0u64, 1, 2, 3, 4, 5], &stream).unwrap();
+            let mut buf =
+                CuDeviceBuffer::from_slice_async(&[0u64, 1, 2, 3, 4, 5], &stream).unwrap();
             let _ = buf.async_copy_from(&start, &stream);
         }
     }
@@ -599,7 +593,8 @@ mod test_device_buffer {
         let _context = crate::CuApi::quick_init().unwrap();
         let stream = CuStream::new(StreamFlags::NON_BLOCKING, None).unwrap();
         unsafe {
-            let mut buf = CuDeviceBuffer::from_slice_async(&[0u64, 1, 2, 3, 4, 5], &stream).unwrap();
+            let mut buf =
+                CuDeviceBuffer::from_slice_async(&[0u64, 1, 2, 3, 4, 5], &stream).unwrap();
             let start = CuDeviceBuffer::from_slice_async(&[0u64, 1, 2, 3, 4], &stream).unwrap();
             let _ = buf.async_copy_from(&start, &stream);
         }

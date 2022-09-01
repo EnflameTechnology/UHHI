@@ -27,12 +27,7 @@
 //! the old legacy handling. Doing so will make your use of cust more compatible with
 //! libraries like cuBLAS or cuFFT, as well as avoid potentially confusing context-based bugs.
 
-use crate::{
-    // device::Device,
-    error::{DeviceResult, DropResult},
-    // private::Sealed,
-    // ApiVersion,
-};
+use crate::error::{DeviceResult, DropResult};
 // use legacy::StreamPriorityRange;
 // use std::{
 //     mem::{self, transmute, MaybeUninit},
@@ -149,7 +144,6 @@ bitflags::bitflags! {
     }
 }
 
-
 pub trait ContextHandle {
     type RawContextT;
     fn get_inner(&self) -> Self::RawContextT;
@@ -196,7 +190,6 @@ pub trait ContextTrait {
     /// destroys the given context and returns the error and the un-destroyed context on failure.
     fn drop(ctx: Self::ContextT) -> DropResult<Self::ContextT>;
 }
-
 
 pub trait CurrentContextTrait {
     type DeviceT;

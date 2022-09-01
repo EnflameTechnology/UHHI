@@ -123,4 +123,3 @@ pub trait StreamTrait<'a> {
     /// destroys the given stream and returns the error and the un-destroyed stream on failure.
     fn drop(stream: Self::StreamT) -> DropResult<Self::StreamT>;
 }
-

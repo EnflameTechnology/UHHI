@@ -38,7 +38,7 @@ pub trait MemoryTrait<T> {
     ///
     /// The memory behind the returned pointer must not be used in any way until the
     /// allocation actually takes place in the stream.
-    unsafe fn malloc_async<M:DeviceCopy>(
+    unsafe fn malloc_async<M: DeviceCopy>(
         stream: &Self::StreamT,
         count: usize,
     ) -> DeviceResult<Self::DevicePointerT>;
@@ -51,12 +51,10 @@ pub trait MemoryTrait<T> {
     /// # Safety
     ///
     /// The pointer must be valid.
-    unsafe fn free_async<M:DeviceCopy>(
+    unsafe fn free_async<M: DeviceCopy>(
         stream: &Self::StreamT,
         p: Self::DevicePointerT,
     ) -> DeviceResult<()>;
-
-    
 
     /// Free memory allocated with [`malloc`](fn.malloc.html).
     ///
@@ -69,6 +67,5 @@ pub trait MemoryTrait<T> {
     ///
     /// The given pointer must have been allocated with `malloc`, or null.
     /// The caller is responsible for ensuring that no other pointers to the deallocated buffer exist.
-    unsafe fn free<M:DeviceCopy>(ptr: Self::DevicePointerT) -> DeviceResult<()>;
-
+    unsafe fn free<M: DeviceCopy>(ptr: Self::DevicePointerT) -> DeviceResult<()>;
 }

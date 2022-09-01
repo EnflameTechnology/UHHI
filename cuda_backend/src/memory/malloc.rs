@@ -1,18 +1,18 @@
+pub use cust_raw as driv;
 use std::mem;
 use std::os::raw::c_void;
 use std::ptr;
-pub use cust_raw as driv;
-use uhal::memory::{MemoryTrait, DevicePointerTrait};
+use uhal::memory::{DevicePointerTrait, MemoryTrait};
 // use uhal::stream::{Stream};
-use uhal::error::{DeviceResult};
-pub use cust_core::_hidden::{DeviceCopy};
-pub use driv::{CUstream};
-use uhal::error::{DeviceError};
+pub use cust_core::_hidden::DeviceCopy;
+pub use driv::CUstream;
+use uhal::error::DeviceError;
+use uhal::error::DeviceResult;
 use uhal::stream::StreamTrait;
 
-use crate::stream::CuStream;
-use crate::error::ToResult;
 use super::CuDevicePointer;
+use crate::error::ToResult;
+use crate::stream::CuStream;
 
 pub struct CuMemory;
 
@@ -52,13 +52,12 @@ impl CuMemory {
     ///     CuMemory::free(device_buffer).unwrap();
     /// }
     /// ```
-    pub unsafe fn malloc<T: DeviceCopy>(count: usize) -> DeviceResult<CuDevicePointer<T>>
-    {
+    pub unsafe fn malloc<T: DeviceCopy>(count: usize) -> DeviceResult<CuDevicePointer<T>> {
         let size = count.checked_mul(mem::size_of::<T>()).unwrap_or(0);
         if size == 0 {
             return Err(DeviceError::InvalidMemoryAllocation);
         }
-    
+
         let mut ptr = 0;
         driv::cuMemAlloc_v2(&mut ptr, size).to_result()?;
         Ok(CuDevicePointer::from_raw(ptr))
@@ -76,13 +75,12 @@ impl CuMemory {
     pub unsafe fn malloc_async<T: DeviceCopy>(
         stream: &CuStream,
         count: usize,
-    ) -> DeviceResult<CuDevicePointer<T>>
-    {
+    ) -> DeviceResult<CuDevicePointer<T>> {
         let size = count.checked_mul(mem::size_of::<T>()).unwrap_or(0);
         if size == 0 {
             return Err(DeviceError::InvalidMemoryAllocation);
         }
-    
+
         let mut ptr: *mut c_void = ptr::null_mut();
         driv::cuMemAllocAsync(
             &mut ptr as *mut *mut c_void as *mut u64,
@@ -105,16 +103,13 @@ impl CuMemory {
     pub unsafe fn free_async<T: DeviceCopy>(
         stream: &CuStream,
         p: CuDevicePointer<T>,
-    ) -> DeviceResult<()>
-    {
+    ) -> DeviceResult<()> {
         if mem::size_of::<T>() == 0 {
             return Err(DeviceError::InvalidMemoryAllocation);
         }
-    
+
         driv::cuMemFreeAsync(p.as_raw(), stream.as_inner()).to_result()
     }
-
-    
 
     /// Free memory allocated with [`malloc`](fn.malloc.html).
     ///
@@ -142,23 +137,20 @@ impl CuMemory {
     ///     CuMemory::free(device_buffer).unwrap();
     /// }
     /// ```
-    pub unsafe fn free<T: DeviceCopy>(ptr: CuDevicePointer<T>) -> DeviceResult<()>
-    {
+    pub unsafe fn free<T: DeviceCopy>(ptr: CuDevicePointer<T>) -> DeviceResult<()> {
         if ptr.is_null() {
             return Err(DeviceError::InvalidMemoryAllocation);
         }
-    
+
         driv::cuMemFree_v2(ptr.as_raw()).to_result()?;
         Ok(())
     }
-
 }
-
 
 #[cfg(test)]
 mod test {
     use super::*;
-    use uhal::memory::{MemoryTrait};
+    use uhal::memory::MemoryTrait;
     use uhal::DriverLibraryTrait;
 
     #[derive(Clone, Copy, Debug)]
@@ -208,7 +200,6 @@ mod test {
         }
     }
 
-
     #[test]
     fn test_cuda_free_null() {
         let _context = crate::CuApi::quick_init().unwrap();
@@ -219,5 +210,4 @@ mod test {
             );
         }
     }
-
 }

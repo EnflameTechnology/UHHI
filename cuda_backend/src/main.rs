@@ -1,14 +1,14 @@
-use cuda_backend as cuda;
-use uhal::{DriverLibraryTrait};
-use uhal::memory::DeviceBufferTrait;
-use uhal::stream::{StreamTrait, StreamFlags};
-use uhal::module::{ModuleTrait};
-use cuda::module::CuModule;
-use cuda::memory::CuDeviceBuffer;
-use cuda::stream::CuStream;
-use std::error::Error;
 use cuda::memory::CopyDestination;
+use cuda::memory::CuDeviceBuffer;
+use cuda::module::CuModule;
+use cuda::stream::CuStream;
+use cuda_backend as cuda;
+use std::error::Error;
 use uhal::launch;
+use uhal::memory::DeviceBufferTrait;
+use uhal::module::ModuleTrait;
+use uhal::stream::{StreamFlags, StreamTrait};
+use uhal::DriverLibraryTrait;
 
 fn main() -> Result<(), Box<dyn Error>> {
     // Set up the context, load the module, and create a stream to run kernels in.

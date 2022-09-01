@@ -1,12 +1,11 @@
 //! Functions and types for working with Device kernels.
 
 use crate::context::{CacheConfig, SharedMemoryConfig};
-use crate::error::{DeviceResult};
+use crate::error::DeviceResult;
 // use crate::module::Module;
 // use crate::driv::{CUfunction, CUmodule};
 // use std::marker::PhantomData;
 // use std::mem::{transmute, MaybeUninit};
-
 
 /// Dimensions of a grid, or the number of thread blocks in a kernel launch.
 ///

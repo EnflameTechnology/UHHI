@@ -8,10 +8,10 @@
 //! errors related to previous asynchronous launches.
 use std::error::Error;
 // use std::error::Error;
-use std::os::raw::c_char;
-use std::ptr;
 use std::ffi::CStr;
 use std::fmt;
+use std::os::raw::c_char;
+use std::ptr;
 /// Error enum which represents all the potential errors returned by the driver API.
 #[repr(u32)]
 #[allow(missing_docs)]

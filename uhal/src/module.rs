@@ -110,9 +110,15 @@ pub trait ModuleTrait {
     /// Cubins are architecture/compute-capability specific files generated as the final step of the Device compilation
     /// process. They cannot be interchanged across compute capabilities unlike PTX (to some degree). You can create one
     /// using the PTX compiler APIs, the cust [`Linker`](crate::link::Linker), or nvcc (`nvcc a.ptx --cubin -arch=sm_XX`).
-    fn from_cubin<G: AsRef<[u8]>>(bytes: G, options: &[ModuleJitOption]) -> DeviceResult<Self::ModuleT>;
+    fn from_cubin<G: AsRef<[u8]>>(
+        bytes: G,
+        options: &[ModuleJitOption],
+    ) -> DeviceResult<Self::ModuleT>;
 
-    unsafe fn load_module(image: *const c_void, options: &[ModuleJitOption]) -> DeviceResult<Self::ModuleT>;
+    unsafe fn load_module(
+        image: *const c_void,
+        options: &[ModuleJitOption],
+    ) -> DeviceResult<Self::ModuleT>;
 
     /// Creates a new module from a [`CStr`] pointing to PTX code.
     ///
@@ -126,7 +132,10 @@ pub trait ModuleTrait {
     /// # Panics
     ///
     /// Panics if `string` contains a nul.
-    fn from_ptx<G: AsRef<str>>(string: G, options: &[ModuleJitOption]) -> DeviceResult<Self::ModuleT>;
+    fn from_ptx<G: AsRef<str>>(
+        string: G,
+        options: &[ModuleJitOption],
+    ) -> DeviceResult<Self::ModuleT>;
 
     /// Load a module from a normal (rust) string, implicitly making it into
     /// a cstring.

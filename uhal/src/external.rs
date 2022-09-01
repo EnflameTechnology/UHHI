@@ -2,7 +2,7 @@
 
 // use cust_core::DeviceCopy;
 
-use crate::error::{DeviceResult};
+use crate::error::DeviceResult;
 // use crate::memory::{DevicePointer};
 // pub use cust_core::_hidden::{DeviceCopy};
 

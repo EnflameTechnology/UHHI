@@ -47,9 +47,9 @@ pub use self::device::*;
 pub use self::malloc::*;
 pub use self::pointer::*;
 use crate::error::*;
-use std::ffi::{c_void, CStr, CString};
 pub use crate::DeviceCopy;
 pub use cust_core::_hidden::DeviceCopy;
+use std::ffi::{c_void, CStr, CString};
 
 /// A trait describing a generic buffer that can be accessed from the GPU. This could be either a [`UnifiedBuffer`]
 /// or a regular [`DeviceBuffer`].
@@ -88,7 +88,7 @@ pub trait MemCpyTrait {
         src_ptr: *const c_void,
         size: usize,
     ) -> DeviceResult<()>;
-    
+
     /// Simple wrapper over MemcpyDtoH
     #[allow(clippy::missing_safety_doc)]
     unsafe fn memcpy_dtoh(
@@ -96,7 +96,7 @@ pub trait MemCpyTrait {
         src_ptr: Self::RawDevicePointerT,
         size: usize,
     ) -> DeviceResult<()>;
-    
+
     /// Get the current free and total memory.
     ///
     /// Returns in `.1` the total amount of memory available to the the current context.
@@ -105,4 +105,3 @@ pub trait MemCpyTrait {
     /// the OS reports as free.
     fn mem_get_info() -> DeviceResult<(usize, usize)>;
 }
-

@@ -1,22 +1,21 @@
 pub use cust_raw as driv;
 use driv::CUdeviceptr;
-use uhal::memory::{DeviceBoxTrait, DevicePointerTrait, MemoryTrait};
 use uhal::error::{DeviceResult, DropResult};
+use uhal::memory::{DeviceBoxTrait, DevicePointerTrait, MemoryTrait};
 // use uhal::stream::{Stream};
 
-pub use cust_core::_hidden::{DeviceCopy};
-use uhal::stream::StreamTrait;
 use crate::error::ToResult;
+pub use cust_core::_hidden::DeviceCopy;
 use std::fmt::{self, Pointer};
 use std::mem::{self, ManuallyDrop};
+use uhal::stream::StreamTrait;
 
-use std::os::raw::c_void;
-use crate::driv::{CUstream};
+use crate::driv::CUstream;
 use crate::memory::{CuDevicePointer, CuMemory};
 use crate::stream::CuStream;
+use std::os::raw::c_void;
 
-use super::{CopyDestination, AsyncCopyDestination};
-
+use super::{AsyncCopyDestination, CopyDestination};
 
 #[derive(Debug)]
 pub struct CuDeviceBox<T: DeviceCopy> {
@@ -36,7 +35,7 @@ impl<T: DeviceCopy + Default> CuDeviceBox<T> {
 }
 
 #[cfg(feature = "bytemuck")]
-impl<T: DeviceCopy + bytemuck::Zeroable> CuDeviceBox<T>{
+impl<T: DeviceCopy + bytemuck::Zeroable> CuDeviceBox<T> {
     // type DeviceBoxT = CuDeviceBox<T>;
     // type StreamT = CuStream;
     /// Allocate device memory and fill it with zeroes (`0u8`).
@@ -57,8 +56,7 @@ impl<T: DeviceCopy + bytemuck::Zeroable> CuDeviceBox<T>{
     /// assert_eq!(0, value);
     /// ```
     #[cfg_attr(docsrs, doc(cfg(feature = "bytemuck")))]
-    pub fn zeroed() -> DeviceResult<CuDeviceBox<T>>
-    {
+    pub fn zeroed() -> DeviceResult<CuDeviceBox<T>> {
         unsafe {
             let new_box = CuDeviceBox::uninitialized()?;
             if mem::size_of::<T>() != 0 {
@@ -103,8 +101,7 @@ impl<T: DeviceCopy + bytemuck::Zeroable> CuDeviceBox<T>{
     /// # }
     /// ```
     #[cfg_attr(docsrs, doc(cfg(feature = "bytemuck")))]
-    pub unsafe fn zeroed_async(stream: &CuStream) -> DeviceResult<CuDeviceBox<T>>
-    {
+    pub unsafe fn zeroed_async(stream: &CuStream) -> DeviceResult<CuDeviceBox<T>> {
         let new_box = CuDeviceBox::uninitialized_async(stream)?;
         if mem::size_of::<T>() != 0 {
             driv::cuMemsetD8Async(
@@ -118,7 +115,6 @@ impl<T: DeviceCopy + bytemuck::Zeroable> CuDeviceBox<T>{
         Ok(new_box)
     }
 }
-
 
 impl<T: DeviceCopy> DeviceBoxTrait<T> for CuDeviceBox<T> {
     type DeviceBoxT = CuDeviceBox<T>;
@@ -548,7 +544,11 @@ impl<T: DeviceCopy> AsyncCopyDestination<T> for CuDeviceBox<T> {
 
 impl<T: DeviceCopy> AsyncCopyDestination<CuDeviceBox<T>> for CuDeviceBox<T> {
     type StreamT = CuStream;
-    unsafe fn async_copy_from(&mut self, val: &CuDeviceBox<T>, stream: &Self::StreamT) -> DeviceResult<()> {
+    unsafe fn async_copy_from(
+        &mut self,
+        val: &CuDeviceBox<T>,
+        stream: &Self::StreamT,
+    ) -> DeviceResult<()> {
         let size = mem::size_of::<T>();
         if size != 0 {
             driv::cuMemcpyDtoDAsync_v2(self.ptr.as_raw(), val.ptr.as_raw(), size, stream.as_inner())
@@ -557,7 +557,11 @@ impl<T: DeviceCopy> AsyncCopyDestination<CuDeviceBox<T>> for CuDeviceBox<T> {
         Ok(())
     }
 
-    unsafe fn async_copy_to(&self, val: &mut CuDeviceBox<T>, stream: &Self::StreamT) -> DeviceResult<()> {
+    unsafe fn async_copy_to(
+        &self,
+        val: &mut CuDeviceBox<T>,
+        stream: &Self::StreamT,
+    ) -> DeviceResult<()> {
         let size = mem::size_of::<T>();
         if size != 0 {
             driv::cuMemcpyDtoDAsync_v2(val.ptr.as_raw(), self.ptr.as_raw(), size, stream.as_inner())
@@ -566,7 +570,6 @@ impl<T: DeviceCopy> AsyncCopyDestination<CuDeviceBox<T>> for CuDeviceBox<T> {
         Ok(())
     }
 }
-
 
 #[cfg(test)]
 mod test_device_box {

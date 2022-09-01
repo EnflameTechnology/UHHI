@@ -1,21 +1,21 @@
 pub use cust_raw as driv;
-use uhal::memory::{DeviceSliceTrait, DevicePointerTrait};
+use uhal::memory::{DevicePointerTrait, DeviceSliceTrait};
 // use uhal::stream::{Stream};
-use uhal::error::{DeviceResult};
-pub use cust_core::_hidden::{DeviceCopy};
-use uhal::stream::StreamTrait;
-use std::ops::{Deref, DerefMut};
-use driv::{CUstream};
 #[cfg(feature = "bytemuck")]
 use bytemuck::{Pod, Zeroable};
+pub use cust_core::_hidden::DeviceCopy;
+use driv::CUstream;
 use std::mem::{self, size_of};
+use std::ops::{Deref, DerefMut};
 use std::ops::{Range, RangeFrom, RangeFull, RangeInclusive, RangeTo, RangeToInclusive};
 use std::os::raw::c_void;
+use uhal::error::DeviceResult;
+use uhal::stream::StreamTrait;
 
+use super::{AsyncCopyDestination, CopyDestination, CuDeviceBuffer};
+use crate::error::ToResult;
 use crate::memory::CuDevicePointer;
 use crate::stream::CuStream;
-use crate::error::ToResult;
-use super::{CuDeviceBuffer, CopyDestination, AsyncCopyDestination};
 
 /// Fixed-size device-side slice.
 #[derive(Debug, Copy, Clone)]
@@ -229,7 +229,7 @@ impl<T: DeviceCopy> CuDeviceSlice<T> {
 }
 
 #[cfg(feature = "bytemuck")]
-impl<T: DeviceCopy + Pod> DeviceSliceTrait for CuDeviceSlice<T>{
+impl<T: DeviceCopy + Pod> DeviceSliceTrait for CuDeviceSlice<T> {
     type DevicePointerT = CuDevicePointer<T>;
     type StreamT = CuStream;
     // NOTE(RDambrosio016): async memsets kind of blur the line between safe and unsafe, the only
@@ -242,7 +242,7 @@ impl<T: DeviceCopy + Pod> DeviceSliceTrait for CuDeviceSlice<T>{
     ///
     /// In total it will set `sizeof<T> * len` values of `value` contiguously.
     #[cfg_attr(docsrs, doc(cfg(feature = "bytemuck")))]
-    fn set_8(&mut self, value: u8) -> DeviceResult<()>{
+    fn set_8(&mut self, value: u8) -> DeviceResult<()> {
         if self.ptr.is_null() {
             return Ok(());
         }
@@ -263,7 +263,7 @@ impl<T: DeviceCopy + Pod> DeviceSliceTrait for CuDeviceSlice<T>{
     /// This operation is async so it does not complete immediately, it uses stream-ordering semantics.
     /// Therefore you should not read/write from/to the memory range until the operation is complete.
     #[cfg_attr(docsrs, doc(cfg(feature = "bytemuck")))]
-    unsafe fn set_8_async(&mut self, value: u8, stream: &Self::StreamT) -> DeviceResult<()>{
+    unsafe fn set_8_async(&mut self, value: u8, stream: &Self::StreamT) -> DeviceResult<()> {
         if self.ptr.is_null() {
             return Ok(());
         }
@@ -287,7 +287,7 @@ impl<T: DeviceCopy + Pod> DeviceSliceTrait for CuDeviceSlice<T>{
     /// - `(size_of::<T>() * self.len) % 2 != 0` (the data size is not a multiple of 2 bytes)
     #[track_caller]
     #[cfg_attr(docsrs, doc(cfg(feature = "bytemuck")))]
-    fn set_16(&mut self, value: u16) -> DeviceResult<()>{
+    fn set_16(&mut self, value: u16) -> DeviceResult<()> {
         if self.ptr.is_null() {
             return Ok(());
         }
@@ -321,7 +321,7 @@ impl<T: DeviceCopy + Pod> DeviceSliceTrait for CuDeviceSlice<T>{
     /// Therefore you should not read/write from/to the memory range until the operation is complete.
     #[track_caller]
     #[cfg_attr(docsrs, doc(cfg(feature = "bytemuck")))]
-    unsafe fn set_16_async(&mut self, value: u16, stream: &Self::StreamT) -> DeviceResult<()>{
+    unsafe fn set_16_async(&mut self, value: u16, stream: &Self::StreamT) -> DeviceResult<()> {
         if self.ptr.is_null() {
             return Ok(());
         }
@@ -351,7 +351,7 @@ impl<T: DeviceCopy + Pod> DeviceSliceTrait for CuDeviceSlice<T>{
     /// - `(size_of::<T>() * self.len) % 4 != 0` (the data size is not a multiple of 4 bytes)
     #[track_caller]
     #[cfg_attr(docsrs, doc(cfg(feature = "bytemuck")))]
-    fn set_32(&mut self, value: u32) -> DeviceResult<()>{
+    fn set_32(&mut self, value: u32) -> DeviceResult<()> {
         if self.ptr.is_null() {
             return Ok(());
         }
@@ -385,7 +385,7 @@ impl<T: DeviceCopy + Pod> DeviceSliceTrait for CuDeviceSlice<T>{
     /// Therefore you should not read/write from/to the memory range until the operation is complete.
     #[track_caller]
     #[cfg_attr(docsrs, doc(cfg(feature = "bytemuck")))]
-    unsafe fn set_32_async(&mut self, value: u32, stream: &Self::StreamT) -> DeviceResult<()>{
+    unsafe fn set_32_async(&mut self, value: u32, stream: &Self::StreamT) -> DeviceResult<()> {
         if self.ptr.is_null() {
             return Ok(());
         }
@@ -409,7 +409,7 @@ impl<T: DeviceCopy + Zeroable + Pod> CuDeviceSlice<T> {
     // type DevicePointerT = CuDevicePointer<T>;
     // type StreamT = CuStream;
     /// Sets this slice's data to zero.
-    fn set_zero(&mut self) -> DeviceResult<()>{
+    fn set_zero(&mut self) -> DeviceResult<()> {
         if self.ptr.is_null() {
             return Ok(());
         }
@@ -428,7 +428,7 @@ impl<T: DeviceCopy + Zeroable + Pod> CuDeviceSlice<T> {
     ///
     /// This operation is async so it does not complete immediately, it uses stream-ordering semantics.
     /// Therefore you should not read/write from/to the memory range until the operation is complete.
-    unsafe fn set_zero_async(&mut self, stream: &CuStream) -> DeviceResult<()>{
+    unsafe fn set_zero_async(&mut self, stream: &CuStream) -> DeviceResult<()> {
         if self.ptr.is_null() {
             return Ok(());
         }
@@ -441,8 +441,6 @@ impl<T: DeviceCopy + Zeroable + Pod> CuDeviceSlice<T> {
         erased.set_8_async(0, stream)
     }
 }
-
-
 
 #[inline(never)]
 #[cold]
@@ -723,7 +721,11 @@ impl<T: DeviceCopy, I: AsRef<[T]> + AsMut<[T]> + ?Sized> AsyncCopyDestination<I>
 impl<T: DeviceCopy> AsyncCopyDestination<CuDeviceSlice<T>> for CuDeviceSlice<T> {
     type StreamT = CuStream;
 
-    unsafe fn async_copy_from(&mut self, val: &CuDeviceSlice<T>, stream: &Self::StreamT) -> DeviceResult<()> {
+    unsafe fn async_copy_from(
+        &mut self,
+        val: &CuDeviceSlice<T>,
+        stream: &Self::StreamT,
+    ) -> DeviceResult<()> {
         assert!(
             self.len() == val.len(),
             "destination and source slices have different lengths"
@@ -741,7 +743,11 @@ impl<T: DeviceCopy> AsyncCopyDestination<CuDeviceSlice<T>> for CuDeviceSlice<T> 
         Ok(())
     }
 
-    unsafe fn async_copy_to(&self, val: &mut CuDeviceSlice<T>, stream: &Self::StreamT) -> DeviceResult<()> {
+    unsafe fn async_copy_to(
+        &self,
+        val: &mut CuDeviceSlice<T>,
+        stream: &Self::StreamT,
+    ) -> DeviceResult<()> {
         assert!(
             self.len() == val.len(),
             "destination and source slices have different lengths"
@@ -763,11 +769,19 @@ impl<T: DeviceCopy> AsyncCopyDestination<CuDeviceSlice<T>> for CuDeviceSlice<T> 
 impl<T: DeviceCopy> AsyncCopyDestination<CuDeviceBuffer<T>> for CuDeviceSlice<T> {
     type StreamT = CuStream;
 
-    unsafe fn async_copy_from(&mut self, val: &CuDeviceBuffer<T>, stream: &Self::StreamT) -> DeviceResult<()> {
+    unsafe fn async_copy_from(
+        &mut self,
+        val: &CuDeviceBuffer<T>,
+        stream: &Self::StreamT,
+    ) -> DeviceResult<()> {
         self.async_copy_from(val as &CuDeviceSlice<T>, stream)
     }
 
-    unsafe fn async_copy_to(&self, val: &mut CuDeviceBuffer<T>, stream: &Self::StreamT) -> DeviceResult<()> {
+    unsafe fn async_copy_to(
+        &self,
+        val: &mut CuDeviceBuffer<T>,
+        stream: &Self::StreamT,
+    ) -> DeviceResult<()> {
         self.async_copy_to(val as &mut CuDeviceSlice<T>, stream)
     }
 }

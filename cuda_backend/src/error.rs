@@ -8,8 +8,8 @@
 //! errors related to previous asynchronous launches.
 pub use cust_raw as driv;
 
-use driv::{cudaError_enum};
-use uhal::error::{DeviceResult, DeviceError};
+use driv::cudaError_enum;
+use uhal::error::{DeviceError, DeviceResult};
 
 pub(crate) trait ToResult {
     fn to_result(self) -> DeviceResult<()>;
@@ -51,7 +51,9 @@ impl ToResult for cudaError_enum {
             cudaError_enum::CUDA_ERROR_ALREADY_ACQUIRED => Err(DeviceError::AlreadyAcquired),
             cudaError_enum::CUDA_ERROR_NOT_MAPPED => Err(DeviceError::NotMapped),
             cudaError_enum::CUDA_ERROR_NOT_MAPPED_AS_ARRAY => Err(DeviceError::NotMappedAsArray),
-            cudaError_enum::CUDA_ERROR_NOT_MAPPED_AS_POINTER => Err(DeviceError::NotMappedAsPointer),
+            cudaError_enum::CUDA_ERROR_NOT_MAPPED_AS_POINTER => {
+                Err(DeviceError::NotMappedAsPointer)
+            }
             cudaError_enum::CUDA_ERROR_ECC_UNCORRECTABLE => Err(DeviceError::EccUncorrectable),
             cudaError_enum::CUDA_ERROR_UNSUPPORTED_LIMIT => Err(DeviceError::UnsupportedLimit),
             cudaError_enum::CUDA_ERROR_CONTEXT_ALREADY_IN_USE => {
@@ -64,7 +66,9 @@ impl ToResult for cudaError_enum {
             cudaError_enum::CUDA_ERROR_INVALID_GRAPHICS_CONTEXT => {
                 Err(DeviceError::InvalidGraphicsContext)
             }
-            cudaError_enum::CUDA_ERROR_NVLINK_UNCORRECTABLE => Err(DeviceError::NvlinkUncorrectable),
+            cudaError_enum::CUDA_ERROR_NVLINK_UNCORRECTABLE => {
+                Err(DeviceError::NvlinkUncorrectable)
+            }
             cudaError_enum::CUDA_ERROR_INVALID_SOURCE => Err(DeviceError::InvalidSource),
             cudaError_enum::CUDA_ERROR_FILE_NOT_FOUND => Err(DeviceError::FileNotFound),
             cudaError_enum::CUDA_ERROR_SHARED_OBJECT_SYMBOL_NOT_FOUND => {
@@ -106,7 +110,9 @@ impl ToResult for cudaError_enum {
             cudaError_enum::CUDA_ERROR_HARDWARE_STACK_ERROR => Err(DeviceError::HardwareStackError),
             cudaError_enum::CUDA_ERROR_ILLEGAL_INSTRUCTION => Err(DeviceError::IllegalInstruction),
             cudaError_enum::CUDA_ERROR_MISALIGNED_ADDRESS => Err(DeviceError::MisalignedAddress),
-            cudaError_enum::CUDA_ERROR_INVALID_ADDRESS_SPACE => Err(DeviceError::InvalidAddressSpace),
+            cudaError_enum::CUDA_ERROR_INVALID_ADDRESS_SPACE => {
+                Err(DeviceError::InvalidAddressSpace)
+            }
             cudaError_enum::CUDA_ERROR_INVALID_PC => Err(DeviceError::InvalidProgramCounter),
             cudaError_enum::CUDA_ERROR_LAUNCH_FAILED => Err(DeviceError::LaunchFailed),
             cudaError_enum::CUDA_ERROR_NOT_PERMITTED => Err(DeviceError::NotPermitted),

@@ -18,7 +18,6 @@ pub type deviceptr = ::std::os::raw::c_ulonglong;
 /// thus possible to pass a `DevicePointer` to a Device kernel written in C.
 use crate::memory::DeviceCopy;
 
-
 pub trait DevicePointerTrait<T: ?Sized + DeviceCopy> {
     type DevicePointerT;
     type RawDevicePointerT;
@@ -177,11 +176,10 @@ pub trait DevicePointerTrait<T: ?Sized + DeviceCopy> {
     /// Always use `.sub(count)` instead when possible, because `sub`
     /// allows the compiler to optimize better.
     fn wrapping_sub(self, count: usize) -> Self
-    where T: Sized;
+    where
+        T: Sized;
 
     // /// Casts this device pointer to another type.
     // fn cast<U>(self) -> Self
     // where U: ?Sized + DeviceCopy;
 }
-
-

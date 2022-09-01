@@ -28,16 +28,19 @@
 //! libraries like cuBLAS or cuFFT, as well as avoid potentially confusing context-based bugs.
 pub use cust_raw as driv;
 
-use uhal::device::DeviceTrait;
-use uhal::context::{CacheConfig, ResourceLimit, StreamPriorityRange, ContextHandle, ContextTrait, ContextFlags, SharedMemoryConfig, CurrentContextTrait};
-use uhal::error::{DeviceResult, DropResult};
 use crate::device::CuDevice;
 use crate::error::ToResult;
+use crate::{driv::*, CuApi};
 use std::{
     mem::{self, transmute, MaybeUninit},
     ptr,
 };
-use crate::{driv::*, CuApi};
+use uhal::context::{
+    CacheConfig, ContextFlags, ContextHandle, ContextTrait, CurrentContextTrait, ResourceLimit,
+    SharedMemoryConfig, StreamPriorityRange,
+};
+use uhal::device::DeviceTrait;
+use uhal::error::{DeviceResult, DropResult};
 
 #[derive(Debug)]
 pub struct CuContext {
@@ -61,11 +64,9 @@ impl Clone for CuContext {
         // because we already retained a context on this device successfully (self), it is
         // exceedingly rare that this function would fail, therefore a silent panic
         // is mostly okay
-        Self::new(CuDevice::new(self.device))
-        .expect("Failed to clone context")
+        Self::new(CuDevice::new(self.device)).expect("Failed to clone context")
     }
 }
-
 
 impl ContextTrait for CuContext {
     type ContextT = CuContext;
@@ -78,8 +79,7 @@ impl ContextTrait for CuContext {
     ///
     /// This will **NOT** push the context to the stack, primary contexts do not interoperate
     /// with the context stack.
-    fn new(device: Self::DeviceT) -> DeviceResult<Self::ContextT>
-    {
+    fn new(device: Self::DeviceT) -> DeviceResult<Self::ContextT> {
         let mut inner = MaybeUninit::uninit();
         unsafe {
             driv::cuDevicePrimaryCtxRetain(inner.as_mut_ptr(), device.as_raw()).to_result()?;
@@ -101,21 +101,18 @@ impl ContextTrait for CuContext {
     ///
     /// Nothing else should be using the primary context for this device, otherwise,
     /// spurious errors or segfaults will occur.
-    unsafe fn reset(device: &Self::DeviceT) -> DeviceResult<()>
-    {
+    unsafe fn reset(device: &Self::DeviceT) -> DeviceResult<()> {
         driv::cuDevicePrimaryCtxReset_v2(device.as_raw()).to_result()
     }
 
     /// Sets the flags for the device context, these flags will apply to any user of the primary
     /// context associated with this device.
-    fn set_flags(&self, flags: ContextFlags) -> DeviceResult<()>
-    {
+    fn set_flags(&self, flags: ContextFlags) -> DeviceResult<()> {
         unsafe { driv::cuDevicePrimaryCtxSetFlags_v2(self.device, flags.bits()).to_result() }
     }
 
     /// Returns the raw handle to this context.
-    fn as_raw(&self) -> Self::RawContextT
-    {
+    fn as_raw(&self) -> Self::RawContextT {
         self.inner
     }
 
@@ -142,8 +139,7 @@ impl ContextTrait for CuContext {
     /// # Ok(())
     /// # }
     /// ```
-    fn get_api_version(&self) -> DeviceResult<Self::ApiVersionT>
-    {
+    fn get_api_version(&self) -> DeviceResult<Self::ApiVersionT> {
         unsafe {
             let mut api_version = 0u32;
             driv::cuCtxGetApiVersion(self.inner, &mut api_version as *mut u32).to_result()?;
@@ -183,8 +179,7 @@ impl ContextTrait for CuContext {
     /// # Ok(())
     /// # }
     /// ```
-    fn drop(mut ctx: Self::ContextT) -> DropResult<Self::ContextT>
-    {
+    fn drop(mut ctx: Self::ContextT) -> DropResult<Self::ContextT> {
         if ctx.inner.is_null() {
             return Ok(());
         }
@@ -251,8 +246,7 @@ impl CurrentContextTrait for CuCurrentContext {
     /// # Ok(())
     /// # }
     /// ```
-    fn get_cache_config() -> DeviceResult<CacheConfig>
-    {
+    fn get_cache_config() -> DeviceResult<CacheConfig> {
         unsafe {
             let mut config = CacheConfig::PreferNone;
             driv::cuCtxGetCacheConfig(&mut config as *mut CacheConfig as *mut driv::CUfunc_cache)
@@ -282,8 +276,7 @@ impl CurrentContextTrait for CuCurrentContext {
     /// # Ok(())
     /// # }
     /// ```
-    fn get_device() -> DeviceResult<Self::DeviceT>
-    {
+    fn get_device() -> DeviceResult<Self::DeviceT> {
         unsafe {
             let mut device = CuDevice::new(0);
             driv::cuCtxGetDevice(&mut device.as_raw() as *mut CUdevice).to_result()?;
@@ -312,8 +305,7 @@ impl CurrentContextTrait for CuCurrentContext {
     /// # Ok(())
     /// # }
     /// ```
-    fn get_flags() -> DeviceResult<ContextFlags>
-    {
+    fn get_flags() -> DeviceResult<ContextFlags> {
         unsafe {
             let mut flags = 0u32;
             driv::cuCtxGetFlags(&mut flags as *mut u32).to_result()?;
@@ -342,8 +334,7 @@ impl CurrentContextTrait for CuCurrentContext {
     /// # Ok(())
     /// # }
     /// ```
-    fn get_resource_limit(resource: ResourceLimit) -> DeviceResult<usize>
-    {
+    fn get_resource_limit(resource: ResourceLimit) -> DeviceResult<usize> {
         unsafe {
             let mut limit: usize = 0;
             driv::cuCtxGetLimit(&mut limit as *mut usize, transmute(resource)).to_result()?;
@@ -372,8 +363,7 @@ impl CurrentContextTrait for CuCurrentContext {
     /// # Ok(())
     /// # }
     /// ```
-    fn get_shared_memory_config() -> DeviceResult<SharedMemoryConfig>
-    {
+    fn get_shared_memory_config() -> DeviceResult<SharedMemoryConfig> {
         unsafe {
             let mut cfg = SharedMemoryConfig::DefaultBankSize;
             driv::cuCtxGetSharedMemConfig(
@@ -409,8 +399,7 @@ impl CurrentContextTrait for CuCurrentContext {
     /// # Ok(())
     /// # }
     /// ```
-    fn get_stream_priority_range() -> DeviceResult<StreamPriorityRange>
-    {
+    fn get_stream_priority_range() -> DeviceResult<StreamPriorityRange> {
         unsafe {
             let mut range = StreamPriorityRange {
                 least: 0,
@@ -455,8 +444,7 @@ impl CurrentContextTrait for CuCurrentContext {
     /// # Ok(())
     /// # }
     /// ```
-    fn set_cache_config(cfg: CacheConfig) -> DeviceResult<()>
-    {
+    fn set_cache_config(cfg: CacheConfig) -> DeviceResult<()> {
         unsafe { driv::cuCtxSetCacheConfig(transmute(cfg)).to_result() }
     }
     /// Sets a requested resource limit for the current context.
@@ -504,8 +492,7 @@ impl CurrentContextTrait for CuCurrentContext {
     /// # Ok(())
     /// # }
     /// ```
-    fn set_resource_limit(resource: ResourceLimit, limit: usize) -> DeviceResult<()>
-    {
+    fn set_resource_limit(resource: ResourceLimit, limit: usize) -> DeviceResult<()> {
         unsafe {
             driv::cuCtxSetLimit(transmute(resource), limit).to_result()?;
             Ok(())
@@ -537,8 +524,7 @@ impl CurrentContextTrait for CuCurrentContext {
     /// # Ok(())
     /// # }
     /// ```
-    fn set_shared_memory_config(cfg: SharedMemoryConfig) -> DeviceResult<()>
-    {
+    fn set_shared_memory_config(cfg: SharedMemoryConfig) -> DeviceResult<()> {
         unsafe { driv::cuCtxSetSharedMemConfig(transmute(cfg)).to_result() }
     }
 
@@ -564,9 +550,7 @@ impl CurrentContextTrait for CuCurrentContext {
     /// Ok(())
     /// # }
     /// ```
-    fn set_current(c: &Self::ContextT) -> DeviceResult<()>
-    {
-        
+    fn set_current(c: &Self::ContextT) -> DeviceResult<()> {
         unsafe {
             driv::cuCtxSetCurrent(c.get_inner()).to_result()?;
             Ok(())
@@ -574,8 +558,7 @@ impl CurrentContextTrait for CuCurrentContext {
     }
 
     /// Block to wait for a context's tasks to complete.
-    fn synchronize() -> DeviceResult<()>
-    {
+    fn synchronize() -> DeviceResult<()> {
         unsafe {
             driv::cuCtxSynchronize().to_result()?;
             Ok(())

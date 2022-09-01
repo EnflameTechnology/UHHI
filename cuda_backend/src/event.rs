@@ -14,18 +14,18 @@
 // create state which can be mutated even while an immutable borrow is held.
 
 pub use cust_raw as driv;
-use driv::{CUevent};
+use driv::CUevent;
 
 use uhal::error::{DeviceResult, DropResult};
-use uhal::event::{EventTrait, EventFlags, EventStatus};
+use uhal::event::{EventFlags, EventStatus, EventTrait};
 // use uhal::stream::{Stream};
-use uhal::error::{DeviceError};
-use uhal::stream::StreamTrait;
 use crate::error::ToResult;
+use crate::stream::CuStream;
 use std::mem;
 use std::ptr;
 use std::time::Duration;
-use crate::stream::CuStream;
+use uhal::error::DeviceError;
+use uhal::stream::StreamTrait;
 
 #[derive(Debug)]
 pub struct CuEvent(CUevent);
@@ -33,17 +33,16 @@ pub struct CuEvent(CUevent);
 unsafe impl Send for CuEvent {}
 unsafe impl Sync for CuEvent {}
 
-impl EventTrait for CuEvent{
+impl EventTrait for CuEvent {
     type RawEventT = CUevent;
     type EventT = CuEvent;
     type StreamT = CuStream;
     /// Create a new event with the specified flags.
-    fn new(flags: EventFlags) -> DeviceResult<Self::EventT>
-    {
+    fn new(flags: EventFlags) -> DeviceResult<Self::EventT> {
         unsafe {
             let mut event: CUevent = mem::zeroed();
             driv::cuEventCreate(&mut event, flags.bits()).to_result()?;
-            Ok(Self::EventT{0: event})
+            Ok(Self::EventT { 0: event })
         }
     }
 
@@ -60,7 +59,7 @@ impl EventTrait for CuEvent{
     ///
     /// If the event and stream are not from the same context, an error is
     /// returned.
-    fn record(&self, stream: &Self::StreamT) -> DeviceResult<()>{
+    fn record(&self, stream: &Self::StreamT) -> DeviceResult<()> {
         unsafe {
             driv::cuEventRecord(self.0, stream.as_inner()).to_result()?;
             Ok(())
@@ -70,7 +69,7 @@ impl EventTrait for CuEvent{
     /// Return whether the stream this event was recorded on (see `record`) has processed this event
     /// yet or not. A return value of `EventStatus::Ready` indicates that all work submitted before
     /// the event has been completed.
-    fn query(&self) -> DeviceResult<EventStatus>{
+    fn query(&self) -> DeviceResult<EventStatus> {
         let result = unsafe { driv::cuEventQuery(self.0).to_result() };
 
         match result {
@@ -86,7 +85,7 @@ impl EventTrait for CuEvent{
     /// recorded has completed. `EventFlags::BLOCKING_SYNC` controls the mode of
     /// blocking. If the flag is set on event creation, the thread will sleep.
     /// Otherwise, the thread will busy-wait.
-    fn synchronize(&self) -> DeviceResult<()>{
+    fn synchronize(&self) -> DeviceResult<()> {
         unsafe {
             driv::cuEventSynchronize(self.0).to_result()?;
             Ok(())
@@ -107,7 +106,7 @@ impl EventTrait for CuEvent{
     /// - the two events are not from the same context, or if
     /// - `record` has not been called on either event, or if
     /// - the `DISABLE_TIMING` flag is set on either event.
-    fn elapsed_time_f32(&self, start: &Self) -> DeviceResult<f32>{
+    fn elapsed_time_f32(&self, start: &Self) -> DeviceResult<f32> {
         unsafe {
             let mut millis: f32 = 0.0;
             driv::cuEventElapsedTime(&mut millis, start.0, self.0).to_result()?;
@@ -116,7 +115,7 @@ impl EventTrait for CuEvent{
     }
 
     /// Same as [`elapsed_time_f32`](Self::elapsed_time_f32) except returns the time as a [`Duration`].
-    fn elapsed(&self, start: &Self) -> DeviceResult<Duration>{
+    fn elapsed(&self, start: &Self) -> DeviceResult<Duration> {
         let time_f32 = self.elapsed_time_f32(start)?;
         // multiply to nanos to preserve as much precision as possible
         Ok(Duration::from_nanos((time_f32 * 1e6) as u64))
@@ -126,7 +125,7 @@ impl EventTrait for CuEvent{
     //
     // Necessary for certain Device functions outside of this
     // module that expect a bare `event`.
-    fn as_inner(&self) -> Self::RawEventT{
+    fn as_inner(&self) -> Self::RawEventT {
         self.0
     }
 
@@ -135,7 +134,7 @@ impl EventTrait for CuEvent{
     /// Destroying an event can return errors from previous asynchronous work.
     /// This function destroys the given event and returns the error and the
     /// un-destroyed event on failure.
-    fn drop(mut event: Self::EventT) -> DropResult<Self::EventT>{
+    fn drop(mut event: Self::EventT) -> DropResult<Self::EventT> {
         if event.0.is_null() {
             return Ok(());
         }
@@ -147,7 +146,7 @@ impl EventTrait for CuEvent{
                     mem::forget(event);
                     Ok(())
                 }
-                Err(e) => Err((e, Self::EventT{0: inner})),
+                Err(e) => Err((e, Self::EventT { 0: inner })),
             }
         }
     }

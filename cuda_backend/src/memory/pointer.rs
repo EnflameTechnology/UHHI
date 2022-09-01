@@ -3,13 +3,13 @@ use core::{
     hash::Hash,
     ptr,
 };
+pub use cust_core::_hidden::DeviceCopy;
+pub use cust_raw as driv;
+use driv::CUdeviceptr;
 use std::ffi::c_void;
 use std::marker::PhantomData;
 use std::mem::size_of;
-use uhal::memory::{DevicePointerTrait};
-pub use cust_core::_hidden::{DeviceCopy};
-pub use cust_raw as driv;
-use driv::CUdeviceptr;
+use uhal::memory::DevicePointerTrait;
 
 #[repr(transparent)]
 #[derive(Clone, Copy, Debug, PartialOrd, Ord, PartialEq, Eq, Hash)]
@@ -27,32 +27,28 @@ impl<T: DeviceCopy> Pointer for CuDevicePointer<T> {
     }
 }
 
-impl<T: DeviceCopy> DevicePointerTrait<T> for CuDevicePointer<T>{
+impl<T: DeviceCopy> DevicePointerTrait<T> for CuDevicePointer<T> {
     type DevicePointerT = CuDevicePointer<T>;
     type RawDevicePointerT = CUdeviceptr;
     /// Returns a rust [`pointer`] created from this pointer, meant for FFI purposes.
     /// **The pointer is not dereferenceable from the CPU!**
-    fn as_ptr(&self) -> *const T
-    {
+    fn as_ptr(&self) -> *const T {
         self.ptr as *const T
     }
 
     /// Returns a rust [`pointer`] created from this pointer, meant for FFI purposes.
     /// **The pointer is not dereferenceable from the CPU!**
-    fn as_mut_ptr(&self) -> *mut T
-    {
+    fn as_mut_ptr(&self) -> *mut T {
         self.ptr as *mut T
     }
 
     /// Returns the contained CUdeviceptr.
-    fn as_raw(&self) -> Self::RawDevicePointerT
-    {
+    fn as_raw(&self) -> Self::RawDevicePointerT {
         self.ptr
     }
 
     /// Create a DevicePointer from a raw Device pointer
-    fn from_raw(ptr: Self::RawDevicePointerT) -> Self
-    {
+    fn from_raw(ptr: Self::RawDevicePointerT) -> Self {
         Self {
             ptr,
             marker: PhantomData,
@@ -74,8 +70,7 @@ impl<T: DeviceCopy> DevicePointerTrait<T> for CuDevicePointer<T>{
     ///     assert!(CuDevicePointer::wrap(null).is_null());
     /// }
     /// ```
-    fn is_null(self) -> bool
-    {
+    fn is_null(self) -> bool {
         self.ptr == 0
     }
 
@@ -84,7 +79,7 @@ impl<T: DeviceCopy> DevicePointerTrait<T> for CuDevicePointer<T>{
     // TODO (AL): do we even want this?
     fn null() -> Self
     where
-        T: Sized
+        T: Sized,
     {
         Self {
             ptr: 0,
@@ -130,7 +125,7 @@ impl<T: DeviceCopy> DevicePointerTrait<T> for CuDevicePointer<T>{
     /// ```
     unsafe fn offset(self, count: isize) -> Self
     where
-        T: Sized
+        T: Sized,
     {
         let ptr = self.ptr + (count as usize * size_of::<T>()) as u64;
         Self {
@@ -174,7 +169,7 @@ impl<T: DeviceCopy> DevicePointerTrait<T> for CuDevicePointer<T>{
     /// ```
     fn wrapping_offset(self, count: isize) -> Self
     where
-        T: Sized
+        T: Sized,
     {
         let ptr = self
             .ptr
@@ -224,7 +219,7 @@ impl<T: DeviceCopy> DevicePointerTrait<T> for CuDevicePointer<T>{
     #[allow(clippy::should_implement_trait)]
     unsafe fn add(self, count: usize) -> Self
     where
-        T: Sized
+        T: Sized,
     {
         self.offset(count as isize)
     }
@@ -268,7 +263,7 @@ impl<T: DeviceCopy> DevicePointerTrait<T> for CuDevicePointer<T>{
     #[allow(clippy::should_implement_trait)]
     unsafe fn sub(self, count: usize) -> Self
     where
-        T: Sized
+        T: Sized,
     {
         self.offset((count as isize).wrapping_neg())
     }
@@ -303,7 +298,7 @@ impl<T: DeviceCopy> DevicePointerTrait<T> for CuDevicePointer<T>{
     /// ```
     fn wrapping_add(self, count: usize) -> Self
     where
-        T: Sized
+        T: Sized,
     {
         self.wrapping_offset(count as isize)
     }
@@ -338,7 +333,7 @@ impl<T: DeviceCopy> DevicePointerTrait<T> for CuDevicePointer<T>{
     /// ```
     fn wrapping_sub(self, count: usize) -> Self
     where
-        T: Sized
+        T: Sized,
     {
         self.wrapping_offset((count as isize).wrapping_neg())
     }
@@ -346,10 +341,7 @@ impl<T: DeviceCopy> DevicePointerTrait<T> for CuDevicePointer<T>{
 
 impl<T: DeviceCopy> CuDevicePointer<T> {
     /// Casts this device pointer to another type.
-    pub fn cast<U: DeviceCopy>(self) -> CuDevicePointer<U>
-    {
+    pub fn cast<U: DeviceCopy>(self) -> CuDevicePointer<U> {
         CuDevicePointer::from_raw(self.ptr)
     }
 }
-
-

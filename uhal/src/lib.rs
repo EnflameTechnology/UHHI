@@ -72,7 +72,7 @@ pub use cust_derive::DeviceCopy;
 // use crate::device::{*};
 // use crate::context::{Context};
 // use crate::device::Device;
-use crate::error::{DeviceResult};
+use crate::error::DeviceResult;
 use bitflags::bitflags;
 
 bitflags! {
@@ -85,7 +85,6 @@ bitflags! {
     }
 }
 
-
 pub trait DriverLibraryTrait {
     type ContextT;
     type ApiVersionT;
@@ -94,7 +93,7 @@ pub trait DriverLibraryTrait {
     /// This must be called before any other function is called. Typically, this
     /// should be at the start of your program. All other functions will fail unless the API is
     /// initialized first.
-    fn init(flags: Flags) -> DeviceResult<()> ;
+    fn init(flags: Flags) -> DeviceResult<()>;
 
     /// Shortcut for initializing the Driver API and creating a context with default settings
     /// for the first device.
@@ -106,7 +105,7 @@ pub trait DriverLibraryTrait {
     /// complex needs (multiple devices, custom flags, etc.) should use `init` and create their own
     /// context.
     #[must_use = "The Context must be kept alive or errors will be issued for any function that is run"]
-    fn quick_init() -> DeviceResult<Self::ContextT>;  
+    fn quick_init() -> DeviceResult<Self::ContextT>;
 
     /// Returns the latest version supported by the driver.
     fn get_api_version(self) -> DeviceResult<Self::ApiVersionT>;

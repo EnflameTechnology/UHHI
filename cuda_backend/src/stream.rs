@@ -10,21 +10,21 @@
 //! are not currently supported by cust. Finally, the host can wait for all work scheduled in
 //! a stream to be completed.
 pub use cust_raw as driv;
-pub use driv::{CUstream, CUevent, CUfunction, CUmodule, CUstream_st};
+pub use driv::{CUevent, CUfunction, CUmodule, CUstream, CUstream_st};
 use uhal::event::EventTrait;
-use uhal::function::{BlockSize, GridSize, FunctionTrait};
+use uhal::function::{BlockSize, FunctionTrait, GridSize};
 // use uhal::event::{Event};
-use uhal::stream::{StreamTrait, StreamFlags, StreamWaitEventFlags};
 use uhal::error::{DeviceResult, DropResult};
+use uhal::stream::{StreamFlags, StreamTrait, StreamWaitEventFlags};
 
 use std::ffi::c_void;
 use std::mem;
 use std::panic;
 use std::ptr;
 
+use crate::error::ToResult;
 use crate::event::CuEvent;
 use crate::function::CuFunction;
-use crate::error::ToResult;
 
 pub struct CuStream(CUstream);
 
@@ -42,7 +42,6 @@ where
     });
 }
 
-
 impl<'a> StreamTrait<'a> for CuStream {
     type RawStreamT = CUstream;
     type StreamT = CuStream;
@@ -55,12 +54,10 @@ impl<'a> StreamTrait<'a> for CuStream {
     /// a stream with a higher priority number. `Context::get_stream_priority_range` can be used
     /// to get the range of valid priority values; if priority is set outside that range, it will
     /// be automatically clamped to the lowest or highest number in the range.
-    fn new(mut flags: StreamFlags, priority: Option<i32>) -> DeviceResult<Self::StreamT>{
+    fn new(mut flags: StreamFlags, priority: Option<i32>) -> DeviceResult<Self::StreamT> {
         flags.remove(StreamFlags::NON_BLOCKING);
         unsafe {
-            let mut stream = Self::StreamT {
-                0: ptr::null_mut(),
-            };
+            let mut stream = Self::StreamT { 0: ptr::null_mut() };
             driv::cuStreamCreateWithPriority(
                 &mut stream.0 as *mut Self::RawStreamT,
                 flags.bits(),
@@ -72,7 +69,7 @@ impl<'a> StreamTrait<'a> for CuStream {
     }
 
     /// Return the flags which were used to create this stream.
-    fn get_flags(&self) -> DeviceResult<StreamFlags>{
+    fn get_flags(&self) -> DeviceResult<StreamFlags> {
         unsafe {
             let mut bits = 0u32;
             driv::cuStreamGetFlags(self.0, &mut bits as *mut u32).to_result()?;
@@ -85,7 +82,7 @@ impl<'a> StreamTrait<'a> for CuStream {
     /// If this stream was created without a priority, returns the default priority.
     /// If the stream was created with a priority outside the valid range, returns the clamped
     /// priority.
-    fn get_priority(&self) -> DeviceResult<i32>{
+    fn get_priority(&self) -> DeviceResult<i32> {
         unsafe {
             let mut priority = 0i32;
             driv::cuStreamGetPriority(self.0, &mut priority as *mut i32).to_result()?;
@@ -102,7 +99,7 @@ impl<'a> StreamTrait<'a> for CuStream {
     /// Callbacks must not make any Device API calls.
     fn add_callback<T>(&self, callback: Box<T>) -> DeviceResult<()>
     where
-        T: FnOnce() + Send
+        T: FnOnce() + Send,
     {
         unsafe {
             driv::cuLaunchHostFunc(
@@ -117,7 +114,7 @@ impl<'a> StreamTrait<'a> for CuStream {
     /// Wait until a stream's tasks are completed.
     ///
     /// Waits until the device has completed all operations scheduled for this stream.
-    fn synchronize(&self) -> DeviceResult<()>{
+    fn synchronize(&self) -> DeviceResult<()> {
         unsafe { driv::cuStreamSynchronize(self.0).to_result() }
     }
 
@@ -126,7 +123,7 @@ impl<'a> StreamTrait<'a> for CuStream {
     /// All future work submitted to the stream will wait for the event to
     /// complete. Synchronization is performed on the device, if possible. The
     /// event may originate from different context or device than the stream.
-    fn wait_event(&self, event: Self::EventT, flags: StreamWaitEventFlags) -> DeviceResult<()>{
+    fn wait_event(&self, event: Self::EventT, flags: StreamWaitEventFlags) -> DeviceResult<()> {
         unsafe { driv::cuStreamWaitEvent(self.0, event.as_inner(), flags.bits()).to_result() }
     }
 
@@ -143,7 +140,6 @@ impl<'a> StreamTrait<'a> for CuStream {
     where
         G: Into<GridSize>,
         B: Into<BlockSize>,
-
     {
         let grid_size: GridSize = grid_size.into();
         let block_size: BlockSize = block_size.into();
@@ -166,7 +162,7 @@ impl<'a> StreamTrait<'a> for CuStream {
 
     // Get the inner `CUstream` from the `Stream`. If you use this handle elsewhere,
     // make sure not to use it after the stream has been dropped. Or ManuallyDrop the struct to be safe.
-    fn as_inner(&self) -> Self::RawStreamT{
+    fn as_inner(&self) -> Self::RawStreamT {
         self.0
     }
 
@@ -174,7 +170,7 @@ impl<'a> StreamTrait<'a> for CuStream {
     ///
     /// Destroying a stream can return errors from previous asynchronous work. This function
     /// destroys the given stream and returns the error and the un-destroyed stream on failure.
-    fn drop(mut stream: Self::StreamT) -> DropResult<Self::StreamT>{
+    fn drop(mut stream: Self::StreamT) -> DropResult<Self::StreamT> {
         if stream.0.is_null() {
             return Ok(());
         }
@@ -186,13 +182,13 @@ impl<'a> StreamTrait<'a> for CuStream {
                     mem::forget(stream);
                     Ok(())
                 }
-                Err(e) => Err((e, Self::StreamT { 0:inner })),
+                Err(e) => Err((e, Self::StreamT { 0: inner })),
             }
         }
     }
 }
 
-impl Drop for CuStream{
+impl Drop for CuStream {
     fn drop(&mut self) {
         if self.0.is_null() {
             return;
@@ -203,4 +199,3 @@ impl Drop for CuStream{
         }
     }
 }
-

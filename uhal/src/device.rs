@@ -1,6 +1,6 @@
 //! Functions and types for enumerating Device devices and retrieving information about them.
 
-use crate::error::{DeviceResult};
+use crate::error::DeviceResult;
 // use std::ffi::CStr;
 // use std::ops::Range;
 
@@ -226,4 +226,3 @@ pub trait DeviceTrait {
     /// this device will try to drop the underlying device.
     fn as_raw(&self) -> Self::RawDeviceT;
 }
-
