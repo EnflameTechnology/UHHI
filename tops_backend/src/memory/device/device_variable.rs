@@ -1,0 +1,55 @@
+use uhal::memory::{DeviceVariableTrait, DeviceBoxTrait};
+use uhal::error::{DeviceResult};
+pub use cust_core::_hidden::{DeviceCopy};
+use std::ops::{Deref, DerefMut};
+
+use crate::memory::TopsDevicePointer;
+
+use super::{TopsDeviceBox, CopyDestination};
+/// Wrapper around a variable on the host and a [`DeviceBox`] holding the
+/// variable on the device, allowing for easy synchronization and storage.
+#[derive(Debug)]
+pub struct TopsDeviceVariable<T: DeviceCopy> {
+    mem: TopsDeviceBox<T>,
+    var: T,
+}
+
+impl<T: DeviceCopy> DeviceVariableTrait<T> for TopsDeviceVariable<T> {
+    type DevicePointerT = TopsDevicePointer<T>;
+    type DeviceVariableT = TopsDeviceVariable<T>;
+    /// Create a new `DeviceVariable` wrapping `var`.
+    ///
+    /// Allocates storage on the device and copies `var` to the device.
+    fn new(var: T) -> DeviceResult<Self::DeviceVariableT> {
+        let mem = TopsDeviceBox::new(&var)?;
+        Ok(TopsDeviceVariable { mem, var })
+    }
+
+    /// Copy the host copy of the variable to the device
+    fn copy_htod(&mut self) -> DeviceResult<()> {
+        self.mem.copy_from(&self.var)
+    }
+
+    /// Copy the device copy of the variable to the host
+    fn copy_dtoh(&mut self) -> DeviceResult<()> {
+        self.mem.copy_to(&mut self.var)
+    }
+
+    fn as_device_ptr(&self) -> Self::DevicePointerT {
+        self.mem.as_device_ptr()
+    }
+}
+
+impl<T: DeviceCopy> Deref for TopsDeviceVariable<T> {
+    type Target = T;
+
+    fn deref(&self) -> &Self::Target {
+        &self.var
+    }
+}
+
+impl<T: DeviceCopy> DerefMut for TopsDeviceVariable<T> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.var
+    }
+}

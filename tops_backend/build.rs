@@ -4,7 +4,7 @@ fn main() {
         println!("cargo:rustc-link-search=native={}", path);
     }
     println!("Test......................................................................................");
-    println!("cargo:rustc-link-lib=dylib=tops");
+    println!("cargo:rustc-link-lib=dylib=tops_api64");
     println!("cargo:rerun-if-changed=build.rs");
 
 }
