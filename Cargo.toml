@@ -3,6 +3,7 @@
 members = [
   "uhal",
   "cuda_backend",
+  "tops_backend",
   "common_features/cust_core",
   "common_features/cust_derive",
 ]
