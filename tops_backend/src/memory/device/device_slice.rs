@@ -591,7 +591,7 @@ impl<T: DeviceCopy> TopsDeviceSlice<T> {
     }
 }
 
-//CUDA Implementation
+//Tops Implementation
 // impl<T: DeviceCopy> crate::memory::private::Sealed for TopsDeviceSlice<T> {}
 impl<T: DeviceCopy, I: AsRef<[T]> + AsMut<[T]> + ?Sized> CopyDestination<I> for TopsDeviceSlice<T> {
     fn copy_from(&mut self, val: &I) -> DeviceResult<()> {
@@ -603,8 +603,15 @@ impl<T: DeviceCopy, I: AsRef<[T]> + AsMut<[T]> + ?Sized> CopyDestination<I> for 
         let size = mem::size_of::<T>() * self.len();
         if size != 0 {
             unsafe {
-                driv::topsMemcpyHtoD(self.ptr.as_raw(), val.as_ptr() as *mut c_void, size)
-                    .to_result()?
+                //Memcpy in tops is different from CUDA 
+                //Use HostAlloc function in tops to create a buffer for data transfer
+                let mut ptr = std::ptr::null_mut();
+                driv::topsHostAlloc(&mut ptr as *mut *mut c_void, size, 0);
+                std::ptr::copy(val.as_ptr() as *mut c_void, ptr, size);
+                driv::topsMemcpyHtoD(self.ptr.as_raw(), ptr as *mut c_void, size)
+                    .to_result()?;
+                driv::topsFree(ptr);
+
             }
         }
         Ok(())

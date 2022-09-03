@@ -152,22 +152,26 @@ impl<'a> StreamTrait<'a> for TopsStream {
     {
         let grid_size: GridSize = grid_size.into();
         let block_size: BlockSize = block_size.into();
-        // let grid_ = dim3{x:grid_size.x, y:grid_size.y, z:grid_size.z};
-        // let block_ = dim3{x:block_size.x, y:block_size.y, z:block_size.z};
-        let mut size :u32 = (std::mem::size_of::<c_ulonglong>() * (args.len() - 1) + std::mem::size_of::<c_ulonglong>()) as u32;
-        let mut args_extra = vec![0x1 as *const c_void, args.as_ptr() as *mut c_void, 0x2 as *const c_void, &mut size as *const _ as *mut c_void, 0x3 as *const c_void];
-        // let extra_size = std::mem::size_of::<*const c_void>() * 5;
 
-        // mem::forget(vec);
+        //Layout of parameters for launchkernel in tops is different from CUDA!!!
+        let mut args_ = Vec::new();
+        for i in 0..args.len(){
+            let vaddress = std::mem::transmute::<*mut c_void, *mut *mut c_void>((*args)[i]);
+            args_.push(*vaddress);
+        }
+
+        let mut size :usize = (std::mem::size_of::<c_ulonglong>() * (args.len() - 1) + std::mem::size_of::<usize>()) as usize;
+        let mut config = vec![0x1 as *const c_void, args_.as_mut_ptr() as *const _ as *mut c_void, 0x2 as *const c_void, &mut size as *const _ as *mut c_void, 0x3 as *const c_void];
 
         let nul = ptr::null_mut();
+
         driv::topsModuleLaunchKernel(
             func.to_raw(), grid_size.x, grid_size.y, grid_size.z,
             block_size.x, block_size.y, block_size.z,
             shared_mem_bytes as u32,
             self.0,
             nul as *mut *mut c_void,
-            args_extra.as_mut_ptr() as *mut *mut c_void            
+            config.as_mut_ptr() as *mut *mut c_void            
         )
         .to_result()
     }
