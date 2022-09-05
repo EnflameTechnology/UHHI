@@ -3,6 +3,7 @@ use cuda::memory::CuDeviceBuffer;
 use cuda::module::CuModule;
 use cuda::stream::CuStream;
 use cuda_backend as cuda;
+use uhal::error::DeviceResult;
 use std::error::Error;
 use uhal::launch;
 use uhal::memory::DeviceBufferTrait;
@@ -10,7 +11,55 @@ use uhal::module::ModuleTrait;
 use uhal::stream::{StreamFlags, StreamTrait};
 use uhal::DriverLibraryTrait;
 
-fn main() -> Result<(), Box<dyn Error>> {
+fn matmul_test() -> DeviceResult<()> {
+    let _ctx = cuda::CuApi::quick_init()?;
+
+    let ptx = "./resources/matmul.ptx".to_string();
+    let module = CuModule::from_file(&ptx)?;
+    let stream = CuStream::new(StreamFlags::NON_BLOCKING, None)?;
+
+    const N : usize = 16;
+
+    let mut matA = CuDeviceBuffer::from_slice(&[0.5f32; N * N])?;
+    let mut matB = CuDeviceBuffer::from_slice(&[0.1f32; N * N])?;
+    let mut matOut = CuDeviceBuffer::from_slice(&[0.0f32; N * N])?;
+
+    // This kernel perform matric multiplication of two tensors `matA` and `matB` and writes the result into `matOut`.
+    unsafe {
+        // Launch the kernel using the `function` form:
+        let function_name = "matmul".to_string();
+        let matmul = module.get_function(&function_name)?;
+        let result = launch!(matmul<<<(1, 1, 1), (N as u32, N as u32, 1), 0, stream>>>(
+            matA.as_device_ptr(),
+            matB.as_device_ptr(),
+            matOut.as_device_ptr(),
+            N
+        ));
+        result?;
+    }
+
+    // Kernel launches are asynchronous, so we wait for the kernels to finish executing.
+    stream.synchronize()?;
+
+    // Copy the results back to host memory
+    let mut out_host = [0.0f32; N * N];
+    matOut.copy_to(&mut out_host[0..N * N])?;
+
+    println!("Results******************");
+    for x in 0..N {
+        for y in 0..N {
+            print!("{:.2} ", out_host[x * N + y]);
+        }
+        println!("{}", "");
+    }
+
+    println!("Launched compute kernel successfully.");
+
+    Ok(())
+}
+
+fn main() -> DeviceResult<()> {
+    matmul_test();
     // Set up the context, load the module, and create a stream to run kernels in.
     let _ctx = cuda::CuApi::quick_init()?;
 

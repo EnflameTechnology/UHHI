@@ -10,13 +10,13 @@
 .target sm_52
 .address_size 64
 
-	// .globl	matmulKernel
+	// .globl	matmul
 
-.visible .entry matmulKernel(
-	.param .u64 matmulKernel_param_0,
-	.param .u64 matmulKernel_param_1,
-	.param .u64 matmulKernel_param_2,
-	.param .u32 matmulKernel_param_3
+.visible .entry matmul(
+	.param .u64 matmul_param_0,
+	.param .u64 matmul_param_1,
+	.param .u64 matmul_param_2,
+	.param .u32 matmul_param_3
 )
 {
 	.reg .pred 	%p<10>;
@@ -25,10 +25,10 @@
 	.reg .b64 	%rd<34>;
 
 
-	ld.param.u64 	%rd18, [matmulKernel_param_0];
-	ld.param.u64 	%rd19, [matmulKernel_param_1];
-	ld.param.u64 	%rd17, [matmulKernel_param_2];
-	ld.param.u32 	%r12, [matmulKernel_param_3];
+	ld.param.u64 	%rd18, [matmul_param_0];
+	ld.param.u64 	%rd19, [matmul_param_1];
+	ld.param.u64 	%rd17, [matmul_param_2];
+	ld.param.u32 	%r12, [matmul_param_3];
 	cvta.to.global.u64 	%rd1, %rd19;
 	cvta.to.global.u64 	%rd2, %rd18;
 	mov.u32 	%r13, %ntid.y;
