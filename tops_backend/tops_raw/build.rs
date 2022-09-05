@@ -1,5 +1,5 @@
 fn main() {
-    let paths = vec!["./lib"];
+    let paths = vec!["./lib", "/lib/x86_64-linux-gnu/"];
     for path in paths {
         println!("cargo:rustc-link-search=native={}", path);
     }

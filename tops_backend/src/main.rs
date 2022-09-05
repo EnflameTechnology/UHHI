@@ -52,6 +52,16 @@ fn legacy() -> DeviceResult<()>{
         );
     }
 
+    let mut stream : driv::topsStream_t = ptr::null_mut();
+
+    unsafe {
+        driv::topsStreamCreateWithPriority(
+            &mut stream,
+            0,
+            0
+        );
+    }
+
 
     struct Params {
         a_ : driv::topsDeviceptr_t,
@@ -59,13 +69,14 @@ fn legacy() -> DeviceResult<()>{
         N: usize
     }
     
-    const N:usize = 1000000;
+    const N:usize = 100000;
     let mut val = [0.5f32; N];
-    let Nbytes:usize = N * 4;
+    const Nbytes:usize = N * 4;
 
     let mut host_ptr = std::ptr::null_mut();
     let mut device_ptr = ptr::null_mut();
     let mut device_ptr_dst = ptr::null_mut();
+    let mut device_ptr_dst2 = ptr::null_mut();
 
     unsafe {
         println!("info: copy Host2Device\n");
@@ -74,6 +85,7 @@ fn legacy() -> DeviceResult<()>{
         
         driv::topsMalloc(&mut device_ptr as *mut *mut c_void, Nbytes);
         driv::topsMalloc(&mut device_ptr_dst as *mut *mut c_void, Nbytes);
+        driv::topsMalloc(&mut device_ptr_dst2 as *mut *mut c_void, Nbytes);
 
         driv::topsMemcpyHtoD(device_ptr, host_ptr as *mut c_void, Nbytes);
     }
@@ -87,12 +99,11 @@ fn legacy() -> DeviceResult<()>{
 
     unsafe {
         println!("info: Launch kernel\n");
-        let mut nullstream : driv::topsStream_t = ptr::null_mut();
         driv::topsModuleLaunchKernel(
             func, 1, 1, 1,
             1, 1, 1,
             0,
-            nullstream,
+            stream,
             nul as *mut *mut c_void,
             config.as_mut_ptr() as *mut *mut c_void            
         );
@@ -102,33 +113,69 @@ fn legacy() -> DeviceResult<()>{
         driv::topsMemcpy(host_ptr_out, device_ptr_dst, Nbytes, driv::topsMemcpyKind::topsMemcpyDeviceToHost);
     }
 
-    println!("info: check result\n");
-    // unsafe {
-    //     for i in 0..N  {
-    //         if host_ptr[i] != host_ptr_out[i] {
-    //             Err(DeviceError::UnknownError)
-    //         }
-    //     }
-    // }
+    let mut args = Params {a_ : device_ptr, b_: device_ptr_dst2, N :  Nbytes};
+    let mut size = std::mem::size_of::<Params>();
+    let mut config = vec![0x1 as *const c_void, &args as *const _ as *mut c_void, 0x2 as *const c_void, &mut size as *const _ as *mut c_void, 0x3 as *const c_void];
 
+    let mut host_ptr_out2 = ptr::null_mut();
+
+    unsafe {
+        println!("info: Launch kernel again!\n");
+        driv::topsModuleLaunchKernel(
+            func, 1, 1, 1,
+            1, 1, 1,
+            0,
+            stream,
+            nul as *mut *mut c_void,
+            config.as_mut_ptr() as *mut *mut c_void            
+        );
+
+        println!("info: copy Device2Host again!\n");
+        driv::topsHostAlloc(&mut host_ptr_out2 as *mut *mut c_void, Nbytes, 0);
+        driv::topsMemcpy(host_ptr_out2, device_ptr_dst2, Nbytes, driv::topsMemcpyKind::topsMemcpyDeviceToHost);
+    }
+
+    unsafe {
+        println!("info: stream synchronization...\n");
+        driv::topsStreamSynchronize(stream);
+    }
+
+
+    let mut out_host = [0.0f32; N];
+    let mut out_host2 = [0.0f32; N];
+
+    unsafe {
+        std::ptr::copy(host_ptr_out, out_host.as_mut_ptr() as *mut c_void, Nbytes);
+        std::ptr::copy(host_ptr_out2, out_host2.as_mut_ptr()  as *mut c_void, Nbytes);
+
+    }
 
     unsafe {
         driv::topsFree(host_ptr);
         driv::topsFree(host_ptr_out);
+        driv::topsFree(host_ptr_out2);
+
         driv::topsFree(device_ptr);
         driv::topsFree(device_ptr_dst);
-
+        driv::topsFree(device_ptr_dst2);
     }
 
+    println!("info: cheking results...\n");
+    for x in out_host.iter() {
+        assert_eq!(0.5 as u32, *x as u32);
+    }
+    for x in out_host2.iter() {
+        assert_eq!(0.5 as u32, *x as u32);
+    }
     println!("Launch kernel success for legacy mode!");
     Ok(())
 }
 
 fn main() -> DeviceResult<()> {
-    println!("info: start legacy test!\n");
+    println!("******************\ninfo: start legacy test!\n");
     legacy();
 
-    println!("\n\n\ninfo: start uhal tops_backend test!\n");
+    println!("\n\n\n******************\ninfo: start uhal tops_backend test!\n");
 
     // Set up the context, load the module, and create a stream to run kernels in.
     let _ctx = tops::TopsApi::quick_init()?;
@@ -137,12 +184,13 @@ fn main() -> DeviceResult<()> {
     let module = TopsModule::from_file(&ptx)?;
     let stream = TopsStream::new(StreamFlags::NON_BLOCKING, None)?;
 
-    const N:usize = 1000000;
+    const N:usize = 100000;
     let Nbytes:usize = N * 4;
 
     println!("info: implicit Host2Device memory copy\n");
     let mut src = TopsDeviceBuffer::from_slice(&[2.0f32; N])?;
     let mut dst = TopsDeviceBuffer::from_slice(&[0.0f32; N])?;
+    let mut dst2 = TopsDeviceBuffer::from_slice(&[0.0f32; N])?;
 
     println!("info: launching kernel!\n");
 
@@ -155,6 +203,18 @@ fn main() -> DeviceResult<()> {
             Nbytes
         ));
         result?;
+
+        // Launch the kernel again using the `function` form:
+        let function_name = "copy_d2d".to_string();
+        let copy_d2d = module.get_function(&function_name)?;
+        // Launch with 1x1x1 blocks of 1x1x1 threads, to show that you can use tuples to
+        // configure grid and block size.
+        let result = launch!(copy_d2d<<<(1, 1, 1), (1, 1, 1), 0, stream>>>(
+            src.as_device_ptr(),
+            dst2.as_device_ptr(),
+            Nbytes
+        ));
+        result?;
     }
 
     println!("info: stream synchronization...\n");
@@ -163,8 +223,9 @@ fn main() -> DeviceResult<()> {
 
     println!("info: copy back to host memory!\n");
     // Copy the results back to host memory
-    let mut out_host = [0.0f32; N];
+    let mut out_host = [0.0f32; N*2];
     dst.copy_to(&mut out_host[0..N])?;
+    dst2.copy_to(&mut out_host[N..2*N])?;
 
     println!("info: cheking results...\n");
     for x in out_host.iter() {
