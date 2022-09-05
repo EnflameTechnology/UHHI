@@ -52,12 +52,12 @@ impl<T: DeviceCopy> DeviceBufferTrait<T> for TopsDeviceBuffer<T> {
     /// # Examples
     ///
     /// ```
-    /// # use crate::cuda_backend as cuda;
+    /// # use crate::tops_backend as tops;
     /// use uhal::memory::{DeviceBufferTrait, MemoryTrait, DevicePointerTrait};
     /// use uhal::DriverLibraryTrait;
-    /// # let _context = cuda::CuApi::quick_init().unwrap();
-    /// use cuda::memory::*;
-    /// let mut buffer = unsafe { CuDeviceBuffer::uninitialized(5).unwrap() };
+    /// # let _context = tops::TopsApi::quick_init().unwrap();
+    /// use tops::memory::*;
+    /// let mut buffer = unsafe { TopsDeviceBuffer::uninitialized(5).unwrap() };
     /// buffer.copy_from(&[0u64, 1, 2, 3, 4]).unwrap();
     /// ```
     unsafe fn uninitialized(size: usize) -> DeviceResult<Self::DeviceBufferT>
@@ -114,17 +114,17 @@ impl<T: DeviceCopy> DeviceBufferTrait<T> for TopsDeviceBuffer<T> {
     /// # Examples
     ///
     /// ```
-    /// # use crate::cuda_backend as cuda;
+    /// # use crate::tops_backend as tops;
     /// use uhal::memory::{DeviceBufferTrait, MemoryTrait, DevicePointerTrait};
     /// use uhal::DriverLibraryTrait;
     /// use uhal::stream::{StreamFlags, StreamTrait};
     /// # fn main() -> Result<(), Box<dyn std::error::Error>> {
-    /// # let _context = cuda::CuApi::quick_init().unwrap();
-    /// use cuda::{memory::*, stream::*};
-    /// let stream = CuStream::new(StreamFlags::DEFAULT, None)?;
+    /// # let _context = tops::TopsApi::quick_init().unwrap();
+    /// use tops::{memory::*, stream::*};
+    /// let stream = TopsStream::new(StreamFlags::DEFAULT, None)?;
     /// let mut host_vals = [1, 2, 3];
     /// unsafe {
-    ///     let mut allocated = CuDeviceBuffer::from_slice_async(&[4u8, 5, 6], &stream)?;
+    ///     let mut allocated = TopsDeviceBuffer::from_slice_async(&[4u8, 5, 6], &stream)?;
     ///     allocated.async_copy_to(&mut host_vals, &stream)?;
     ///     allocated.drop_async(&stream)?;
     /// }
@@ -170,20 +170,20 @@ impl<T: DeviceCopy> DeviceBufferTrait<T> for TopsDeviceBuffer<T> {
     /// # Examples
     ///
     /// ```
-    /// # use crate::cuda_backend as cuda;
+    /// # use crate::tops_backend as tops;
     /// use uhal::memory::{DeviceBufferTrait, MemoryTrait, DevicePointerTrait};
     /// use uhal::DriverLibraryTrait;
-    /// # let _context = cuda::CuApi::quick_init().unwrap();
+    /// # let _context = tops::TopsApi::quick_init().unwrap();
     /// use std::mem;
-    /// use cuda::memory::*;
+    /// use tops::memory::*;
     ///
-    /// let mut buffer = CuDeviceBuffer::from_slice(&[0u64; 5]).unwrap();
+    /// let mut buffer = TopsDeviceBuffer::from_slice(&[0u64; 5]).unwrap();
     /// let ptr = buffer.as_device_ptr();
     /// let size = buffer.len();
     ///
     /// mem::forget(buffer);
     ///
-    /// let buffer = unsafe { CuDeviceBuffer::from_raw_parts(ptr, size) };
+    /// let buffer = unsafe { TopsDeviceBuffer::from_raw_parts(ptr, size) };
     /// ```
     unsafe fn from_raw_parts(ptr: Self::DevicePointerT, capacity: usize) -> Self::DeviceBufferT {
         TopsDeviceBuffer {
@@ -200,13 +200,13 @@ impl<T: DeviceCopy> DeviceBufferTrait<T> for TopsDeviceBuffer<T> {
     /// # Example
     ///
     /// ```
-    /// # use crate::cuda_backend as cuda;
+    /// # use crate::tops_backend as tops;
     /// use uhal::memory::{DeviceBufferTrait, MemoryTrait, DevicePointerTrait};
     /// use uhal::DriverLibraryTrait;
-    /// # let _context = cuda::CuApi::quick_init().unwrap();
-    /// use cuda::memory::*;
-    /// let x = CuDeviceBuffer::<u32>::from_slice(&[10, 20, 30]).unwrap();
-    /// match CuDeviceBuffer::drop(x) {
+    /// # let _context = tops::TopsApi::quick_init().unwrap();
+    /// use tops::memory::*;
+    /// let x = TopsDeviceBuffer::<u32>::from_slice(&[10, 20, 30]).unwrap();
+    /// match TopsDeviceBuffer::drop(x) {
     ///     Ok(()) => println!("Successfully destroyed"),
     ///     Err((e, buf)) => {
     ///         println!("Failed to destroy buffer: {:?}", e);
@@ -247,13 +247,13 @@ impl<T: DeviceCopy> DeviceBufferTrait<T> for TopsDeviceBuffer<T> {
     /// # Examples
     ///
     /// ```
-    /// # use crate::cuda_backend as cuda;
+    /// # use crate::tops_backend as tops;
     /// use uhal::memory::{DeviceBufferTrait, MemoryTrait, DevicePointerTrait};
     /// use uhal::DriverLibraryTrait;
-    /// # let _context = cuda::CuApi::quick_init().unwrap();
-    /// use cuda::memory::*;
+    /// # let _context = tops::TopsApi::quick_init().unwrap();
+    /// use tops::memory::*;
     /// let values = [0u64; 5];
-    /// let mut buffer = CuDeviceBuffer::from_slice(&values).unwrap();
+    /// let mut buffer = TopsDeviceBuffer::from_slice(&values).unwrap();
     /// ```
     fn from_slice(slice: &[T]) -> DeviceResult<Self::DeviceBufferT>
     {
@@ -278,18 +278,18 @@ impl<T: DeviceCopy> DeviceBufferTrait<T> for TopsDeviceBuffer<T> {
     /// # Examples
     ///
     /// ```
-    /// # use crate::cuda_backend as cuda;
+    /// # use crate::tops_backend as tops;
     /// use uhal::memory::{DeviceBufferTrait, MemoryTrait, DevicePointerTrait};
     /// use uhal::DriverLibraryTrait;
     /// use uhal::stream::{StreamFlags, StreamTrait};
-    /// # let _context = cuda::CuApi::quick_init().unwrap();
-    /// use cuda::memory::*;
-    /// use cuda::stream::{CuStream};
+    /// # let _context = tops::TopsApi::quick_init().unwrap();
+    /// use tops::memory::*;
+    /// use tops::stream::{TopsStream};
     ///
-    /// let stream = CuStream::new(StreamFlags::NON_BLOCKING, None).unwrap();
+    /// let stream = TopsStream::new(StreamFlags::NON_BLOCKING, None).unwrap();
     /// let values = [0u64; 5];
     /// unsafe {
-    ///     let mut buffer = CuDeviceBuffer::from_slice_async(&values, &stream).unwrap();
+    ///     let mut buffer = TopsDeviceBuffer::from_slice_async(&values, &stream).unwrap();
     ///     stream.synchronize();
     ///     // Perform some operation on the buffer
     /// }
@@ -320,12 +320,12 @@ impl<T: DeviceCopy + Zeroable> TopsDeviceBuffer<T> {
     /// # Examples
     ///
     /// ```
-    /// # use crate::cuda_backend as cuda;
+    /// # use crate::tops_backend as tops;
     /// use uhal::memory::{DeviceBufferTrait, MemoryTrait, DevicePointerTrait};
     /// use uhal::DriverLibraryTrait;
-    /// # let _context = cuda::CuApi::quick_init().unwrap();
-    /// use cuda::memory::*;
-    /// let mut zero = CuDeviceBuffer::zeroed(4).unwrap();
+    /// # let _context = tops::TopsApi::quick_init().unwrap();
+    /// use tops::memory::*;
+    /// let mut zero = TopsDeviceBuffer::zeroed(4).unwrap();
     /// let mut values = [1u8, 2, 3, 4];
     /// zero.copy_to(&mut values).unwrap();
     /// assert_eq!(values, [0; 4]);
@@ -357,17 +357,17 @@ impl<T: DeviceCopy + Zeroable> TopsDeviceBuffer<T> {
     /// # Examples
     ///
     /// ```
-    /// # use crate::cuda_backend as cuda;
+    /// # use crate::tops_backend as tops;
     /// use uhal::memory::{DeviceBufferTrait, MemoryTrait, DevicePointerTrait};
     /// use uhal::DriverLibraryTrait;
     /// use uhal::stream::{StreamFlags, StreamTrait};
     /// # fn main() -> Result<(), Box<dyn std::error::Error>> {
-    /// # let _context = cuda::CuApi::quick_init().unwrap();
-    /// use cuda::{memory::*, stream::*};
-    /// let stream = CuStream::new(StreamFlags::DEFAULT, None)?;
+    /// # let _context = tops::TopsApi::quick_init().unwrap();
+    /// use tops::{memory::*, stream::*};
+    /// let stream = TopsStream::new(StreamFlags::DEFAULT, None)?;
     /// let mut values = [1u8, 2, 3, 4];
     /// unsafe {
-    ///     let mut zero = CuDeviceBuffer::zeroed_async(4, &stream)?;
+    ///     let mut zero = TopsDeviceBuffer::zeroed_async(4, &stream)?;
     ///     zero.async_copy_to(&mut values, &stream)?;
     ///     zero.drop_async(&stream)?;
     /// }

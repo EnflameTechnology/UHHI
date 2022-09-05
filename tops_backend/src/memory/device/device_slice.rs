@@ -48,12 +48,12 @@ impl<T: DeviceCopy> TopsDeviceSlice<T> {
     /// # Examples
     ///
     /// ```
-    /// # use crate::cuda_backend as cuda;
+    /// # use crate::tops_backend as tops;
     /// use uhal::memory::{DeviceBufferTrait, MemoryTrait, DevicePointerTrait};
     /// use uhal::DriverLibraryTrait;
-    /// # let _context = cuda::CuApi::quick_init().unwrap();
-    /// use cuda::memory::*;
-    /// let a = CuDeviceBuffer::from_slice(&[1, 2, 3]).unwrap();
+    /// # let _context = tops::TopsApi::quick_init().unwrap();
+    /// use tops::memory::*;
+    /// let a = TopsDeviceBuffer::from_slice(&[1, 2, 3]).unwrap();
     /// assert_eq!(a.len(), 3);
     /// ```
     pub fn len(&self) -> usize {
@@ -65,12 +65,12 @@ impl<T: DeviceCopy> TopsDeviceSlice<T> {
     /// # Examples
     ///
     /// ```
-    /// # use crate::cuda_backend as cuda;
+    /// # use crate::tops_backend as tops;
     /// use uhal::memory::{DeviceBufferTrait, MemoryTrait, DevicePointerTrait};
     /// use uhal::DriverLibraryTrait;
-    /// # let _context = cuda::CuApi::quick_init().unwrap();
-    /// use cuda::memory::*;
-    /// let a : CuDeviceBuffer<u64> = unsafe { CuDeviceBuffer::uninitialized(0).unwrap() };
+    /// # let _context = tops::TopsApi::quick_init().unwrap();
+    /// use tops::memory::*;
+    /// let a : TopsDeviceBuffer<u64> = unsafe { TopsDeviceBuffer::uninitialized(0).unwrap() };
     /// assert!(a.is_empty());
     /// ```
     pub fn is_empty(&self) -> bool {
@@ -86,12 +86,12 @@ impl<T: DeviceCopy> TopsDeviceSlice<T> {
     /// Examples:
     ///
     /// ```
-    /// # use crate::cuda_backend as cuda;
+    /// # use crate::tops_backend as tops;
     /// use uhal::memory::{DeviceBufferTrait, MemoryTrait, DevicePointerTrait};
     /// use uhal::DriverLibraryTrait;
-    /// let _context = cuda::CuApi::quick_init().unwrap();
-    /// use cuda::memory::*;
-    /// let a = CuDeviceBuffer::<i32>::from_slice(&[1, 2, 3]).unwrap();
+    /// let _context = tops::TopsApi::quick_init().unwrap();
+    /// use tops::memory::*;
+    /// let a = TopsDeviceBuffer::<i32>::from_slice(&[1, 2, 3]).unwrap();
     /// println!("{:p}", a.as_device_ptr());
     /// ```
     pub fn as_device_ptr(&self) -> TopsDevicePointer<T> {
@@ -190,15 +190,15 @@ impl<T: DeviceCopy> TopsDeviceSlice<T> {
     /// # Examples
     ///
     /// ```
-    /// # use crate::cuda_backend as cuda;
+    /// # use crate::tops_backend as tops;
     /// use uhal::memory::{DeviceBufferTrait, MemoryTrait, DevicePointerTrait};
     /// use uhal::DriverLibraryTrait;
-    /// # let _context = cuda::CuApi::quick_init().unwrap();
-    /// use cuda::memory::*;
-    /// let mut x = CuDeviceBuffer::<u64>::from_slice(&[0u64, 1, 2, 3, 4, 5]).unwrap();
+    /// # let _context = tops::TopsApi::quick_init().unwrap();
+    /// use tops::memory::*;
+    /// let mut x = TopsDeviceBuffer::<u64>::from_slice(&[0u64, 1, 2, 3, 4, 5]).unwrap();
     /// // Manually slice the buffer (this is not recommended!)
     /// let ptr = unsafe { x.as_device_ptr().offset(1) };
-    /// let slice = unsafe { CuDeviceSlice::from_raw_parts(ptr, 2) };
+    /// let slice = unsafe { TopsDeviceSlice::from_raw_parts(ptr, 2) };
     /// let mut host_buf = [0u64, 0];
     /// slice.copy_to(&mut host_buf).unwrap();
     /// assert_eq!([1u64, 2], host_buf);
@@ -406,8 +406,8 @@ impl<T: DeviceCopy + Pod> DeviceSliceTrait for TopsDeviceSlice<T>{
 
 #[cfg(feature = "bytemuck")]
 impl<T: DeviceCopy + Zeroable + Pod> TopsDeviceSlice<T> {
-    // type DevicePointerT = CuDevicePointer<T>;
-    // type StreamT = CuStream;
+    // type DevicePointerT = TopsDevicePointer<T>;
+    // type StreamT = TopsStream;
     /// Sets this slice's data to zero.
     fn set_zero(&mut self) -> DeviceResult<()>{
         if self.ptr.is_null() {

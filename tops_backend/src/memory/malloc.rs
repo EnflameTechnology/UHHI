@@ -42,14 +42,14 @@ impl TopsMemory {
     /// # Examples
     ///
     /// ```
-    /// # use cuda_backend as cuda;
+    /// # use tops_backend as tops;
     /// use uhal::DriverLibraryTrait;
-    /// let _context = cuda::CuApi::quick_init().unwrap();
-    /// use cuda::memory::*;
+    /// let _context = tops::TopsApi::quick_init().unwrap();
+    /// use tops::memory::*;
     /// unsafe {
-    ///     let device_buffer = CuMemory::malloc::<u64>(5).unwrap();
+    ///     let device_buffer = TopsMemory::malloc::<u64>(5).unwrap();
     ///     // Free allocated memory.
-    ///     CuMemory::free(device_buffer).unwrap();
+    ///     TopsMemory::free(device_buffer).unwrap();
     /// }
     /// ```
     pub unsafe fn malloc<T: DeviceCopy>(count: usize) -> DeviceResult<TopsDevicePointer<T>>
@@ -132,15 +132,15 @@ impl TopsMemory {
     /// # Examples
     ///
     /// ```
-    /// # use cuda_backend as cuda;
-    /// let _context = cuda::CuApi::quick_init().unwrap();
-    /// use cuda::memory::*;
+    /// # use tops_backend as tops;
+    /// let _context = tops::TopsApi::quick_init().unwrap();
+    /// use tops::memory::*;
     /// use uhal::DriverLibraryTrait;
     /// use uhal::memory::MemoryTrait;
     /// unsafe {
-    ///     let device_buffer = CuMemory::malloc::<u64>(5).unwrap();
+    ///     let device_buffer = TopsMemory::malloc::<u64>(5).unwrap();
     ///     // Free allocated memory.
-    ///     CuMemory::free(device_buffer).unwrap();
+    ///     TopsMemory::free(device_buffer).unwrap();
     /// }
     /// ```
     pub unsafe fn free<T: DeviceCopy>(ptr: TopsDevicePointer<T>) -> DeviceResult<()>

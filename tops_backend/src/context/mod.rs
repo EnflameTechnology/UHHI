@@ -127,18 +127,18 @@ impl ContextTrait for TopsContext {
     /// # Example
     ///
     /// ```
-    /// use crate::cuda_backend as cuda;
+    /// use crate::tops_backend as tops;
     /// use uhal::memory::{DeviceBufferTrait, MemoryTrait, DevicePointerTrait};
     /// use uhal::{Flags, DriverLibraryTrait};
     /// use uhal::context::{ContextTrait, CurrentContextTrait};
     /// use uhal::device::DeviceTrait;
-    /// use cuda::device::CuDevice;
-    /// use cuda::context::{ CuContext, CuCurrentContext };
+    /// use tops::device::TopsDevice;
+    /// use tops::context::{ TopsContext, TopsCurrentContext };
     /// use std::error::Error;
     /// # fn main () -> Result<(), Box<dyn Error>> {
-    /// cuda::CuApi::init(Flags::empty())?;
-    /// let device = CuDevice::get_device(0)?;
-    /// let context = CuContext::new(device)?;
+    /// tops::TopsApi::init(Flags::empty())?;
+    /// let device = TopsDevice::get_device(0)?;
+    /// let context = TopsContext::new(device)?;
     /// let version = context.get_api_version()?;
     /// # Ok(())
     /// # }
@@ -162,19 +162,19 @@ impl ContextTrait for TopsContext {
     /// # Example
     ///
     /// ```
-    /// use crate::cuda_backend as cuda;
+    /// use crate::tops_backend as tops;
     /// use uhal::memory::{DeviceBufferTrait, MemoryTrait, DevicePointerTrait};
     /// use uhal::{Flags, DriverLibraryTrait};
     /// use uhal::context::{ContextTrait, CurrentContextTrait};
     /// use uhal::device::DeviceTrait;
-    /// use cuda::device::CuDevice;
-    /// use cuda::context::{ CuContext, CuCurrentContext };
+    /// use tops::device::TopsDevice;
+    /// use tops::context::{ TopsContext, TopsCurrentContext };
     /// use std::error::Error;
     /// # fn main () -> Result<(), Box<dyn Error>> {
-    /// # cuda::CuApi::init(Flags::empty())?;
-    /// # let device = CuDevice::get_device(0)?;
-    /// let context = CuContext::new(device)?;
-    /// match CuContext::drop(context) {
+    /// # tops::TopsApi::init(Flags::empty())?;
+    /// # let device = TopsDevice::get_device(0)?;
+    /// let context = TopsContext::new(device)?;
+    /// match TopsContext::drop(context) {
     ///     Ok(()) => println!("Successfully destroyed"),
     ///     Err((e, ctx)) => {
     ///         println!("Failed to destroy context: {:?}", e);
@@ -236,19 +236,19 @@ impl CurrentContextTrait for TopsCurrentContext {
     /// # Example
     ///
     /// ```
-    /// use crate::cuda_backend as cuda;
+    /// use crate::tops_backend as tops;
     /// use uhal::memory::{DeviceBufferTrait, MemoryTrait, DevicePointerTrait};
     /// use uhal::{Flags, DriverLibraryTrait};
     /// use uhal::context::{ContextTrait, CurrentContextTrait};
     /// use uhal::device::DeviceTrait;
-    /// use cuda::device::CuDevice;
-    /// use cuda::context::{ CuContext, CuCurrentContext };
+    /// use tops::device::TopsDevice;
+    /// use tops::context::{ TopsContext, TopsCurrentContext };
     /// use std::error::Error;
     /// # fn main () -> Result<(), Box<dyn Error>> {
-    /// # cuda::CuApi::init(Flags::empty())?;
-    /// # let device = CuDevice::get_device(0)?;
-    /// let context = CuContext::new(device)?;
-    /// let cache_config = CuCurrentContext::get_cache_config()?;
+    /// # tops::TopsApi::init(Flags::empty())?;
+    /// # let device = TopsDevice::get_device(0)?;
+    /// let context = TopsContext::new(device)?;
+    /// let cache_config = TopsCurrentContext::get_cache_config()?;
     /// # Ok(())
     /// # }
     /// ```
@@ -267,19 +267,19 @@ impl CurrentContextTrait for TopsCurrentContext {
     /// # Example
     ///
     /// ```
-    /// use crate::cuda_backend as cuda;
+    /// use crate::tops_backend as tops;
     /// use uhal::memory::{DeviceBufferTrait, MemoryTrait, DevicePointerTrait};
     /// use uhal::{Flags, DriverLibraryTrait};
     /// use uhal::context::{ContextTrait, CurrentContextTrait};
     /// use uhal::device::DeviceTrait;
-    /// use cuda::device::CuDevice;
-    /// use cuda::context::{ CuContext, CuCurrentContext };
+    /// use tops::device::TopsDevice;
+    /// use tops::context::{ TopsContext, TopsCurrentContext };
     /// use std::error::Error;
     /// # fn main () -> Result<(), Box<dyn Error>> {
-    /// # cuda::CuApi::init(Flags::empty())?;
-    /// # let device = CuDevice::get_device(0)?;
-    /// let context = CuContext::new(device)?;
-    /// let device = CuCurrentContext::get_device()?;
+    /// # tops::TopsApi::init(Flags::empty())?;
+    /// # let device = TopsDevice::get_device(0)?;
+    /// let context = TopsContext::new(device)?;
+    /// let device = TopsCurrentContext::get_device()?;
     /// # Ok(())
     /// # }
     /// ```
@@ -297,19 +297,19 @@ impl CurrentContextTrait for TopsCurrentContext {
     /// # Example
     ///
     /// ```
-    /// use crate::cuda_backend as cuda;
+    /// use crate::tops_backend as tops;
     /// use uhal::memory::{DeviceBufferTrait, MemoryTrait, DevicePointerTrait};
     /// use uhal::{Flags, DriverLibraryTrait};
     /// use uhal::context::{ContextTrait, CurrentContextTrait};
     /// use uhal::device::DeviceTrait;
-    /// use cuda::device::CuDevice;
-    /// use cuda::context::{ CuContext, CuCurrentContext };
+    /// use tops::device::TopsDevice;
+    /// use tops::context::{ TopsContext, TopsCurrentContext };
     /// # use std::error::Error;
     /// # fn main () -> Result<(), Box<dyn Error>> {
-    /// # cuda::CuApi::init(Flags::empty())?;
-    /// # let device = CuDevice::get_device(0)?;
-    /// let context = CuContext::new(device)?;
-    /// let flags = CuCurrentContext::get_flags()?;
+    /// # tops::TopsApi::init(Flags::empty())?;
+    /// # let device = TopsDevice::get_device(0)?;
+    /// let context = TopsContext::new(device)?;
+    /// let flags = TopsCurrentContext::get_flags()?;
     /// # Ok(())
     /// # }
     /// ```
@@ -327,19 +327,19 @@ impl CurrentContextTrait for TopsCurrentContext {
     /// # Example
     ///
     /// ```
-    /// use crate::cuda_backend as cuda;
+    /// use crate::tops_backend as tops;
     /// use uhal::memory::{DeviceBufferTrait, MemoryTrait, DevicePointerTrait};
     /// use uhal::{Flags, DriverLibraryTrait};
     /// use uhal::context::{ContextTrait, CurrentContextTrait, ResourceLimit};
     /// use uhal::device::DeviceTrait;
-    /// use cuda::device::CuDevice;
-    /// use cuda::context::{ CuContext, CuCurrentContext };
+    /// use tops::device::TopsDevice;
+    /// use tops::context::{ TopsContext, TopsCurrentContext };
     /// use std::error::Error;
     /// # fn main () -> Result<(), Box<dyn Error>> {
-    /// # cuda::CuApi::init(Flags::empty())?;
-    /// # let device = CuDevice::get_device(0)?;
-    /// let context = CuContext::new(device)?;
-    /// let stack_size = CuCurrentContext::get_resource_limit(ResourceLimit::StackSize)?;
+    /// # tops::TopsApi::init(Flags::empty())?;
+    /// # let device = TopsDevice::get_device(0)?;
+    /// let context = TopsContext::new(device)?;
+    /// let stack_size = TopsCurrentContext::get_resource_limit(ResourceLimit::StackSize)?;
     /// # Ok(())
     /// # }
     /// ```
@@ -358,19 +358,19 @@ impl CurrentContextTrait for TopsCurrentContext {
     /// # Example
     ///
     /// ```
-    /// use crate::cuda_backend as cuda;
+    /// use crate::tops_backend as tops;
     /// use uhal::memory::{DeviceBufferTrait, MemoryTrait, DevicePointerTrait};
     /// use uhal::{Flags, DriverLibraryTrait};
     /// use uhal::context::{ContextTrait, CurrentContextTrait};
     /// use uhal::device::DeviceTrait;
-    /// use cuda::device::CuDevice;
-    /// use cuda::context::{ CuContext, CuCurrentContext };
+    /// use tops::device::TopsDevice;
+    /// use tops::context::{ TopsContext, TopsCurrentContext };
     /// use std::error::Error;
     /// # fn main () -> Result<(), Box<dyn Error>> {
-    /// # cuda::CuApi::init(Flags::empty())?;
-    /// # let device = CuDevice::get_device(0)?;
-    /// let context = CuContext::new(device)?;
-    /// let shared_mem_config = CuCurrentContext::get_shared_memory_config()?;
+    /// # tops::TopsApi::init(Flags::empty())?;
+    /// # let device = TopsDevice::get_device(0)?;
+    /// let context = TopsContext::new(device)?;
+    /// let shared_mem_config = TopsCurrentContext::get_shared_memory_config()?;
     /// # Ok(())
     /// # }
     /// ```
@@ -395,19 +395,19 @@ impl CurrentContextTrait for TopsCurrentContext {
     /// # Example
     ///
     /// ```
-    /// use crate::cuda_backend as cuda;
+    /// use crate::tops_backend as tops;
     /// use uhal::memory::{DeviceBufferTrait, MemoryTrait, DevicePointerTrait};
     /// use uhal::{Flags, DriverLibraryTrait};
     /// use uhal::context::{ContextTrait, CurrentContextTrait};
     /// use uhal::device::DeviceTrait;
-    /// use cuda::device::CuDevice;
-    /// use cuda::context::{ CuContext, CuCurrentContext };
+    /// use tops::device::TopsDevice;
+    /// use tops::context::{ TopsContext, TopsCurrentContext };
     /// # use std::error::Error;
     /// # fn main () -> Result<(), Box<dyn Error>> {
-    /// # cuda::CuApi::init(Flags::empty())?;
-    /// # let device = CuDevice::get_device(0)?;
-    /// let context = CuContext::new(device)?;
-    /// let priority_range = CuCurrentContext::get_stream_priority_range()?;
+    /// # tops::TopsApi::init(Flags::empty())?;
+    /// # let device = TopsDevice::get_device(0)?;
+    /// let context = TopsContext::new(device)?;
+    /// let priority_range = TopsCurrentContext::get_stream_priority_range()?;
     /// # Ok(())
     /// # }
     /// ```
@@ -440,20 +440,20 @@ impl CurrentContextTrait for TopsCurrentContext {
     /// # Example
     ///
     /// ```
-    /// use crate::cuda_backend as cuda;
+    /// use crate::tops_backend as tops;
     /// use uhal::memory::{DeviceBufferTrait, MemoryTrait, DevicePointerTrait};
     /// use uhal::{Flags, DriverLibraryTrait};
     /// use uhal::context::{ContextTrait, CurrentContextTrait, CacheConfig};
     /// use uhal::device::DeviceTrait;
-    /// use cuda::device::CuDevice;
+    /// use tops::device::TopsDevice;
     /// use std::error::Error;
-    /// use cuda::context::{ CuContext, CuCurrentContext };
+    /// use tops::context::{ TopsContext, TopsCurrentContext };
     /// #
     /// # fn main () -> Result<(), Box<dyn Error>> {
-    /// # cuda::CuApi::init(Flags::empty())?;
-    /// # let device = CuDevice::get_device(0)?;
-    /// let context = CuContext::new(device)?;
-    /// CuCurrentContext::set_cache_config(CacheConfig::PreferL1)?;
+    /// # tops::TopsApi::init(Flags::empty())?;
+    /// # let device = TopsDevice::get_device(0)?;
+    /// let context = TopsContext::new(device)?;
+    /// TopsCurrentContext::set_cache_config(CacheConfig::PreferL1)?;
     /// # Ok(())
     /// # }
     /// ```
@@ -489,20 +489,20 @@ impl CurrentContextTrait for TopsCurrentContext {
     /// # Example
     ///
     /// ```
-    /// use crate::cuda_backend as cuda;
+    /// use crate::tops_backend as tops;
     /// use uhal::memory::{DeviceBufferTrait, MemoryTrait, DevicePointerTrait};
     /// use uhal::{Flags, DriverLibraryTrait};
     /// use uhal::context::{ContextTrait, CurrentContextTrait, ResourceLimit};
     /// use uhal::device::DeviceTrait;
-    /// use cuda::device::CuDevice;
-    /// use cuda::context::{ CuContext, CuCurrentContext };
+    /// use tops::device::TopsDevice;
+    /// use tops::context::{ TopsContext, TopsCurrentContext };
     /// # use std::error::Error;
     /// #
     /// # fn main () -> Result<(), Box<dyn Error>> {
-    /// # cuda::CuApi::init(Flags::empty())?;
-    /// # let device = CuDevice::get_device(0)?;
-    /// let context = CuContext::new(device)?;
-    /// CuCurrentContext::set_resource_limit(ResourceLimit::StackSize, 2048)?;
+    /// # tops::TopsApi::init(Flags::empty())?;
+    /// # let device = TopsDevice::get_device(0)?;
+    /// let context = TopsContext::new(device)?;
+    /// TopsCurrentContext::set_resource_limit(ResourceLimit::StackSize, 2048)?;
     /// # Ok(())
     /// # }
     /// ```
@@ -523,20 +523,20 @@ impl CurrentContextTrait for TopsCurrentContext {
     /// # Example
     ///
     /// ```
-    /// use crate::cuda_backend as cuda;
+    /// use crate::tops_backend as tops;
     /// use uhal::memory::{DeviceBufferTrait, MemoryTrait, DevicePointerTrait};
     /// use uhal::{Flags, DriverLibraryTrait};
     /// use uhal::context::{ContextTrait, CurrentContextTrait, SharedMemoryConfig};
     /// use uhal::device::DeviceTrait;
-    /// use cuda::device::CuDevice;
-    /// use cuda::context::{ CuContext, CuCurrentContext };
+    /// use tops::device::TopsDevice;
+    /// use tops::context::{ TopsContext, TopsCurrentContext };
     /// # use std::error::Error;
     /// #
     /// # fn main () -> Result<(), Box<dyn Error>> {
-    /// # cuda::CuApi::init(Flags::empty())?;
-    /// # let device = CuDevice::get_device(0)?;
-    /// let context = CuContext::new(device)?;
-    /// CuCurrentContext::set_shared_memory_config(SharedMemoryConfig::DefaultBankSize)?;
+    /// # tops::TopsApi::init(Flags::empty())?;
+    /// # let device = TopsDevice::get_device(0)?;
+    /// let context = TopsContext::new(device)?;
+    /// TopsCurrentContext::set_shared_memory_config(SharedMemoryConfig::DefaultBankSize)?;
     /// # Ok(())
     /// # }
     /// ```
@@ -550,20 +550,20 @@ impl CurrentContextTrait for TopsCurrentContext {
     /// # Example
     ///
     /// ```
-    /// use crate::cuda_backend as cuda;
+    /// use crate::tops_backend as tops;
     /// use uhal::memory::{DeviceBufferTrait, MemoryTrait, DevicePointerTrait};
     /// use uhal::{Flags, DriverLibraryTrait};
     /// use uhal::context::{ContextTrait, CurrentContextTrait};
     /// use uhal::device::DeviceTrait;
-    /// use cuda::device::CuDevice;
-    /// use cuda::context::{ CuContext, CuCurrentContext };
+    /// use tops::device::TopsDevice;
+    /// use tops::context::{ TopsContext, TopsCurrentContext };
     /// use std::error::Error;
     /// #
     /// fn main () -> Result<(), Box<dyn Error>> {
-    /// cuda::CuApi::init(Flags::empty())?;
-    /// let device = CuDevice::get_device(0)?;
-    /// let context = CuContext::new(device)?;
-    /// CuCurrentContext::set_current(&context)?;
+    /// tops::TopsApi::init(Flags::empty())?;
+    /// let device = TopsDevice::get_device(0)?;
+    /// let context = TopsContext::new(device)?;
+    /// TopsCurrentContext::set_current(&context)?;
     /// Ok(())
     /// # }
     /// ```
