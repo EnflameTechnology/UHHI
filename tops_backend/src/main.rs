@@ -173,7 +173,7 @@ fn legacy() -> DeviceResult<()>{
 
 fn main() -> DeviceResult<()> {
     println!("******************\ninfo: start legacy test!\n");
-    legacy();
+    let ret = legacy();
 
     println!("\n\n\n******************\ninfo: start uhal tops_backend test!\n");
 
@@ -185,7 +185,7 @@ fn main() -> DeviceResult<()> {
     let stream = TopsStream::new(StreamFlags::NON_BLOCKING, None)?;
 
     const N:usize = 100000;
-    let Nbytes:usize = N * 4;
+    let Nbytes : usize = N * 4;
 
     println!("info: implicit Host2Device memory copy\n");
     let mut src = TopsDeviceBuffer::from_slice(&[2.0f32; N])?;
