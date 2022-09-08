@@ -1,44 +1,99 @@
+use cuda::function::CuFunction;
 use cuda::memory::CopyDestination;
 use cuda::memory::CuDeviceBuffer;
 use cuda::module::CuModule;
 use cuda::stream::CuStream;
 use cuda_backend as cuda;
+use cust_core::DeviceCopy;
 use uhal::error::DeviceResult;
-use std::error::Error;
+use uhal::function::FunctionTrait;
+use std::marker::PhantomData;
 use uhal::launch;
 use uhal::memory::DeviceBufferTrait;
 use uhal::module::ModuleTrait;
 use uhal::stream::{StreamFlags, StreamTrait};
 use uhal::DriverLibraryTrait;
+use std::collections::HashMap;
+struct Layer<'a, T: DeviceCopy> {
+    op : &'a str,
+    weight : Option<CuDeviceBuffer<T>>
+}
+
+fn load_module<'a>(name : &str) -> DeviceResult<CuModule>{
+    let ptx = format!("./resources/{}.ptx",name).to_string();
+    CuModule::from_file(&ptx)
+}
 
 fn matmul_test() -> DeviceResult<()> {
     let _ctx = cuda::CuApi::quick_init()?;
-
-    let ptx = "./resources/matmul.ptx".to_string();
-    let module = CuModule::from_file(&ptx)?;
     let stream = CuStream::new(StreamFlags::NON_BLOCKING, None)?;
 
     const N : usize = 16;
+
+    let mut layers = Vec::new();
+    let layer1 = Layer::<f32> {op : "matmul", weight: Some(CuDeviceBuffer::from_slice(&[0.01f32; N * N])?)};
+    let layer2 = Layer::<f32> {op : "tanh", weight : None};
+
+    let layer3 = Layer::<f32> {op : "matmul", weight: Some(CuDeviceBuffer::from_slice(&[0.02f32; N * N])?)};
+    let layer4 = Layer::<f32> {op : "tanh", weight : None};
+
+    let layer5 = Layer::<f32> {op : "matmul", weight: Some(CuDeviceBuffer::from_slice(&[0.05f32; N * N])?)};
+    let layer6 = Layer::<f32> {op : "tanh", weight : None};
+
+    layers.push(layer1);    
+    layers.push(layer2);
+    layers.push(layer3);
+    layers.push(layer4);
+    layers.push(layer5);
+    layers.push(layer6);
 
     let mut matA = CuDeviceBuffer::from_slice(&[0.5f32; N * N])?;
     let mut matB = CuDeviceBuffer::from_slice(&[0.1f32; N * N])?;
     let mut matOut = CuDeviceBuffer::from_slice(&[0.0f32; N * N])?;
 
-    // This kernel perform matric multiplication of two tensors `matA` and `matB` and writes the result into `matOut`.
-    unsafe {
-        // Launch the kernel using the `function` form:
-        let function_name = "matmul".to_string();
-        let matmul = module.get_function(&function_name)?;
-        let result = launch!(matmul<<<(1, 1, 1), (N as u32, N as u32, 1), 0, stream>>>(
-            matA.as_device_ptr(),
-            matB.as_device_ptr(),
-            matOut.as_device_ptr(),
-            N
-        ));
-        result?;
-    }
+    let map_act = HashMap::from([("relu", 0), ("elu", 1), ("leaky", 2), ("tanh", 3)]);
 
-    // Kernel launches are asynchronous, so we wait for the kernels to finish executing.
+    for layer in layers {
+        if ["relu", "elu", "leaky", "tanh"].contains(&layer.op) {
+            let function_name = "activation_array_kernel";
+            match load_module("activation") {
+                Ok(module) => {
+                    let kernel = module.get_function(&function_name)?;
+                    unsafe {
+                        let result = launch!(kernel<<<(1, 1, 1), (N as u32, N as u32, 1), 0, stream>>>(
+                            matA.as_device_ptr(),
+                            N,
+                            map_act[layer.op]
+                        ));
+                        result?;
+                    }
+                }
+                _ => { println!("Failed to load kernel!"); break;}
+            }
+        } else {
+            match load_module(layer.op) {
+                Ok(module) => {
+                    let kernel = module.get_function(&layer.op)?;
+                    unsafe {
+                        let result = launch!(kernel<<<(1, 1, 1), (N as u32, N as u32, 1), 0, stream>>>(
+                            matA.as_device_ptr(),
+                            matB.as_device_ptr(),
+                            matOut.as_device_ptr(),
+                            N
+                        ));
+                        result?;
+                    }
+                    std::mem::swap(&mut matA, &mut matOut);
+                    match layer.weight {
+                        Some(w) => { matB = w;}
+                        _ => { println!("Failed to get weight!"); break;}
+                    }
+                }
+                _ => { println!("Failed to load kernel!"); break; }
+            }
+        }
+    }
+    // Wait asynchronous kernels to finish.
     stream.synchronize()?;
 
     // Copy the results back to host memory
