@@ -21,7 +21,7 @@ struct Layer<'a, T: DeviceCopy> {
     weight : Option<CuDeviceBuffer<T>>,
     input_size : (usize, usize),
     output_size : (usize, usize),
-    out_ref : Option<&'a mut CuDeviceBuffer<T>>
+    out_ref : Option<&'a CuDeviceBuffer<T>>
 }
 
 fn load_module<'a>(name : &str) -> DeviceResult<CuModule>{
@@ -29,34 +29,33 @@ fn load_module<'a>(name : &str) -> DeviceResult<CuModule>{
     CuModule::from_file(&ptx)
 }
 
-fn matmul_test() -> DeviceResult<()> {
+fn network_test() -> DeviceResult<()> {
     let _ctx = cuda::CuApi::quick_init()?;
     let stream = CuStream::new(StreamFlags::NON_BLOCKING, None)?;
 
     const N : usize = 16;
     const K : usize = 3;
 
-    let mut layers = Vec::new();
-    let layer1 = Layer::<f32> {op : "matmul", weight: Some(CuDeviceBuffer::from_slice(&[0.01f32; N * N])?), input_size : (N, N), output_size : (N, N), out_ref : None}; //weight is N x N matric for next layer
-    let layer2 = Layer::<f32> {op : "tanh", weight : None, input_size : (N, N), output_size : (N, N), out_ref : None}; //out N x N
+    //Neural network layers: matmul(tanh act) -> matmul(relu act) -> matmul(tanh act) -> convolution(3x3 kernel, tanh act) -> matmul(tanh act) -> matmul(leaky act)
+    let layers = vec![
+        Layer::<f32> {op : "matmul", weight: Some(CuDeviceBuffer::from_slice(&[0.01f32; N * N])?), input_size : (N, N), output_size : (N, N), out_ref : None}, //weight is N x N matric for next layer
+        Layer::<f32> {op : "tanh", weight : None, input_size : (N, N), output_size : (N, N), out_ref : None}, //out N x N
 
-    let layer3 = Layer::<f32> {op : "matmul", weight: Some(CuDeviceBuffer::from_slice(&[0.02f32; N * N])?), input_size : (N, N), output_size : (N, N), out_ref : None}; //weight is N x N matric for next layer
-    let layer4 = Layer::<f32> {op : "relu", weight : None, input_size : (N, N), output_size : (N, N), out_ref : None}; //out N x N
+        Layer::<f32> {op : "matmul", weight: Some(CuDeviceBuffer::from_slice(&[0.02f32; N * N])?), input_size : (N, N), output_size : (N, N), out_ref : None}, //weight is N x N matric for next layer
+        Layer::<f32> {op : "relu", weight : None, input_size : (N, N), output_size : (N, N), out_ref : None}, //out N x N
 
-    let layer5 = Layer::<f32> {op : "matmul", weight: Some(CuDeviceBuffer::from_slice(&[0.5f32; K * K])?), input_size : (N, N), output_size : (N, N), out_ref : None}; //weight is convolution kernel for next layer
-    let layer6 = Layer::<f32> {op : "tanh", weight : None, input_size : (N, N), output_size : (N, N), out_ref : None}; //out N x N
+        Layer::<f32> {op : "matmul", weight: Some(CuDeviceBuffer::from_slice(&[0.5f32; K * K])?), input_size : (N, N), output_size : (N, N), out_ref : None}, //weight is convolution kernel for next layer
+        Layer::<f32> {op : "tanh", weight : None, input_size : (N, N), output_size : (N, N), out_ref : None}, //out N x N
 
-    let layer7 = Layer::<f32> {op : "convolution", weight: None, input_size : (N, N), output_size : (N - K + 1, N - K + 1), out_ref : None}; //out (N - K + 1) x (N - K + 1)
-    let layer8 = Layer::<f32> {op : "tanh", weight : None, input_size : (N - K + 1, N - K + 1), output_size : (N - K + 1, N - K + 1), out_ref : None};  //out (N - K + 1) x (N - K + 1)
+        Layer::<f32> {op : "convolution", weight: Some(CuDeviceBuffer::from_slice(&[0.2f32; (N - K + 1) * (N - K + 1)])?), input_size : (N, N), output_size : (N - K + 1, N - K + 1), out_ref : None}, //weight is (N - K + 1) * (N - K + 1) matric for next layer
+        Layer::<f32> {op : "tanh", weight : None, input_size : (N - K + 1, N - K + 1), output_size : (N - K + 1, N - K + 1), out_ref : None},  //out (N - K + 1) x (N - K + 1)
+        
+        Layer::<f32> {op : "matmul", weight: Some(CuDeviceBuffer::from_slice(&[0.2f32; (N - K + 1) * (N - K + 1)])?), input_size : (N - K + 1, N - K + 1), output_size : (N - K + 1, N - K + 1), out_ref : None}, //weight is (N - K + 1) * (N - K + 1) matric for next layer
+        Layer::<f32> {op : "tanh", weight : None, input_size : (N - K + 1, N - K + 1), output_size : (N - K + 1, N - K + 1), out_ref : None}, //output shape (N - K + 1) * (N - K + 1)
 
-    layers.push(layer1);    
-    layers.push(layer2);
-    layers.push(layer3);
-    layers.push(layer4);
-    layers.push(layer5);
-    layers.push(layer6);
-    layers.push(layer7);
-    layers.push(layer8);
+        Layer::<f32> {op : "matmul", weight: None, input_size : (N - K + 1, N - K + 1), output_size : (N - K + 1, N - K + 1), out_ref : None}, // no weight in the last layer
+        Layer::<f32> {op : "leaky", weight : None, input_size : (N - K + 1, N - K + 1), output_size : (N - K + 1, N - K + 1), out_ref : None}, //output shape (N - K + 1) * (N - K + 1)
+    ];
 
     let mut matA = CuDeviceBuffer::from_slice(&[0.5f32; N * N])?;
     let mut matB = CuDeviceBuffer::from_slice(&[0.1f32; N * N])?;
@@ -65,7 +64,7 @@ fn matmul_test() -> DeviceResult<()> {
 
     let map_act = HashMap::from([("relu", 0), ("elu", 1), ("leaky", 2), ("tanh", 3)]);
 
-    let mut out_ref : Option<&mut CuDeviceBuffer<f32>> = None;
+    let mut out_ref : Option<&CuDeviceBuffer<f32>> = None;
     for layer in layers {
         if ["relu", "elu", "leaky", "tanh"].contains(&layer.op) {
             let function_name = "activation_array_kernel";
@@ -80,7 +79,7 @@ fn matmul_test() -> DeviceResult<()> {
                         ));
                         result?;
                     }
-                    out_ref = Some(&mut matA);
+                    out_ref = Some(&matA);
                 }
                 _ => { println!("Failed to load kernel!"); break;}
             }
@@ -104,7 +103,7 @@ fn matmul_test() -> DeviceResult<()> {
                             // if idx < len - 1 { println!("Failed to get weight!"); break; }
                         }
                     }
-                    out_ref = Some(&mut matA);
+                    out_ref = Some(&matA);
                 }
                 _ => { println!("Failed to load kernel!"); break; }
             }
@@ -132,7 +131,7 @@ fn matmul_test() -> DeviceResult<()> {
                             // if idx < len - 1 { println!("Failed to get weight!"); break; }
                         }
                     }
-                    out_ref = Some(&mut matA);
+                    out_ref = Some(&matA);
 
                 }
                 _ => { println!("Failed to load kernel!"); break; }
@@ -163,7 +162,7 @@ fn matmul_test() -> DeviceResult<()> {
 }
 
 fn main() -> DeviceResult<()> {
-    matmul_test();
+    network_test();
     // Set up the context, load the module, and create a stream to run kernels in.
     let _ctx = cuda::CuApi::quick_init()?;
 
