@@ -7,6 +7,7 @@ use cuda_backend as cuda;
 use cust_core::DeviceCopy;
 use uhal::error::DeviceResult;
 use uhal::function::FunctionTrait;
+use std::borrow::Borrow;
 use std::marker::PhantomData;
 use uhal::launch;
 use uhal::memory::DeviceBufferTrait;
@@ -14,9 +15,13 @@ use uhal::module::ModuleTrait;
 use uhal::stream::{StreamFlags, StreamTrait};
 use uhal::DriverLibraryTrait;
 use std::collections::HashMap;
+
 struct Layer<'a, T: DeviceCopy> {
     op : &'a str,
-    weight : Option<CuDeviceBuffer<T>>
+    weight : Option<CuDeviceBuffer<T>>,
+    input_size : (usize, usize),
+    output_size : (usize, usize),
+    out_ref : Option<&'a mut CuDeviceBuffer<T>>
 }
 
 fn load_module<'a>(name : &str) -> DeviceResult<CuModule>{
@@ -29,16 +34,20 @@ fn matmul_test() -> DeviceResult<()> {
     let stream = CuStream::new(StreamFlags::NON_BLOCKING, None)?;
 
     const N : usize = 16;
+    const K : usize = 3;
 
     let mut layers = Vec::new();
-    let layer1 = Layer::<f32> {op : "matmul", weight: Some(CuDeviceBuffer::from_slice(&[0.01f32; N * N])?)};
-    let layer2 = Layer::<f32> {op : "tanh", weight : None};
+    let layer1 = Layer::<f32> {op : "matmul", weight: Some(CuDeviceBuffer::from_slice(&[0.01f32; N * N])?), input_size : (N, N), output_size : (N, N), out_ref : None}; //weight is N x N matric for next layer
+    let layer2 = Layer::<f32> {op : "tanh", weight : None, input_size : (N, N), output_size : (N, N), out_ref : None}; //out N x N
 
-    let layer3 = Layer::<f32> {op : "matmul", weight: Some(CuDeviceBuffer::from_slice(&[0.02f32; N * N])?)};
-    let layer4 = Layer::<f32> {op : "tanh", weight : None};
+    let layer3 = Layer::<f32> {op : "matmul", weight: Some(CuDeviceBuffer::from_slice(&[0.02f32; N * N])?), input_size : (N, N), output_size : (N, N), out_ref : None}; //weight is N x N matric for next layer
+    let layer4 = Layer::<f32> {op : "relu", weight : None, input_size : (N, N), output_size : (N, N), out_ref : None}; //out N x N
 
-    let layer5 = Layer::<f32> {op : "matmul", weight: Some(CuDeviceBuffer::from_slice(&[0.05f32; N * N])?)};
-    let layer6 = Layer::<f32> {op : "tanh", weight : None};
+    let layer5 = Layer::<f32> {op : "matmul", weight: Some(CuDeviceBuffer::from_slice(&[0.5f32; K * K])?), input_size : (N, N), output_size : (N, N), out_ref : None}; //weight is convolution kernel for next layer
+    let layer6 = Layer::<f32> {op : "tanh", weight : None, input_size : (N, N), output_size : (N, N), out_ref : None}; //out N x N
+
+    let layer7 = Layer::<f32> {op : "convolution", weight: None, input_size : (N, N), output_size : (N - K + 1, N - K + 1), out_ref : None}; //out (N - K + 1) x (N - K + 1)
+    let layer8 = Layer::<f32> {op : "tanh", weight : None, input_size : (N - K + 1, N - K + 1), output_size : (N - K + 1, N - K + 1), out_ref : None};  //out (N - K + 1) x (N - K + 1)
 
     layers.push(layer1);    
     layers.push(layer2);
@@ -46,13 +55,17 @@ fn matmul_test() -> DeviceResult<()> {
     layers.push(layer4);
     layers.push(layer5);
     layers.push(layer6);
+    layers.push(layer7);
+    layers.push(layer8);
 
     let mut matA = CuDeviceBuffer::from_slice(&[0.5f32; N * N])?;
     let mut matB = CuDeviceBuffer::from_slice(&[0.1f32; N * N])?;
     let mut matOut = CuDeviceBuffer::from_slice(&[0.0f32; N * N])?;
+    let mut matConvOut = CuDeviceBuffer::from_slice(&[0.0f32; (N - K + 1) * (N - K + 1)])?;
 
     let map_act = HashMap::from([("relu", 0), ("elu", 1), ("leaky", 2), ("tanh", 3)]);
 
+    let mut out_ref : Option<&mut CuDeviceBuffer<f32>> = None;
     for layer in layers {
         if ["relu", "elu", "leaky", "tanh"].contains(&layer.op) {
             let function_name = "activation_array_kernel";
@@ -60,34 +73,67 @@ fn matmul_test() -> DeviceResult<()> {
                 Ok(module) => {
                     let kernel = module.get_function(&function_name)?;
                     unsafe {
-                        let result = launch!(kernel<<<(1, 1, 1), (N as u32, N as u32, 1), 0, stream>>>(
+                        let result = launch!(kernel<<<(1, 1, 1), (layer.input_size.0 as u32, layer.input_size.1 as u32, 1), 0, stream>>>(
                             matA.as_device_ptr(),
-                            N,
+                            layer.output_size.0,
                             map_act[layer.op]
                         ));
                         result?;
                     }
+                    out_ref = Some(&mut matA);
                 }
                 _ => { println!("Failed to load kernel!"); break;}
             }
-        } else {
+        } else if layer.op == "matmul" {
             match load_module(layer.op) {
                 Ok(module) => {
                     let kernel = module.get_function(&layer.op)?;
                     unsafe {
-                        let result = launch!(kernel<<<(1, 1, 1), (N as u32, N as u32, 1), 0, stream>>>(
+                        let result = launch!(kernel<<<(1, 1, 1), (layer.input_size.0 as u32, layer.input_size.1 as u32, 1), 0, stream>>>(
                             matA.as_device_ptr(),
                             matB.as_device_ptr(),
                             matOut.as_device_ptr(),
-                            N
+                            layer.output_size.0
                         ));
                         result?;
                     }
                     std::mem::swap(&mut matA, &mut matOut);
                     match layer.weight {
                         Some(w) => { matB = w;}
-                        _ => { println!("Failed to get weight!"); break;}
+                        _ => { 
+                            // if idx < len - 1 { println!("Failed to get weight!"); break; }
+                        }
                     }
+                    out_ref = Some(&mut matA);
+                }
+                _ => { println!("Failed to load kernel!"); break; }
+            }
+        } else {
+            match load_module(layer.op) {
+                Ok(module) => {
+                    let kernel = module.get_function(&layer.op)?;
+                    unsafe {
+                        let result = launch!(kernel<<<(1, 1, 1), (layer.input_size.0 as u32, layer.input_size.1 as u32, 1), 0, stream>>>(
+                            matA.as_device_ptr(),
+                            matConvOut.as_device_ptr(),
+                            matB.as_device_ptr(),
+                            layer.input_size.0 as u32, layer.input_size.1 as u32,
+                            layer.output_size.0 as u32, layer.output_size.1 as u32,
+                            K,
+                            K
+                        ));
+                        result?;
+                    }
+
+                    std::mem::swap(&mut matA, &mut matConvOut);
+                    match layer.weight {
+                        Some(w) => { matB = w;}
+                        _ => { 
+                            // if idx < len - 1 { println!("Failed to get weight!"); break; }
+                        }
+                    }
+                    out_ref = Some(&mut matA);
+
                 }
                 _ => { println!("Failed to load kernel!"); break; }
             }
@@ -96,19 +142,22 @@ fn matmul_test() -> DeviceResult<()> {
     // Wait asynchronous kernels to finish.
     stream.synchronize()?;
 
-    // Copy the results back to host memory
-    let mut out_host = [0.0f32; N * N];
-    matOut.copy_to(&mut out_host[0..N * N])?;
-
-    println!("Results******************");
-    for x in 0..N {
-        for y in 0..N {
-            print!("{:.2} ", out_host[x * N + y]);
+    match out_ref {
+        Some(out) => {
+            let mut conv_out_host = vec![0.0f32; out.len()];
+            out.copy_to(&mut conv_out_host[0..out.len()])?;
+            println!("\n\nResults after convolution******************");
+            for x in 0..(N - K + 1) {
+                for y in 0..(N - K + 1) {
+                    print!("{:.5} ", conv_out_host[x * (N - K + 1) + y]);
+                }
+                println!("{}", "");
+            }
         }
-        println!("{}", "");
+        _ => { println!("Unable to obtain compute result!")}
     }
 
-    println!("Launched compute kernel successfully.");
+    println!("\nLaunched compute kernel successfully.");
 
     Ok(())
 }
