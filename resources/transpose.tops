@@ -1,0 +1,47 @@
+#include "tops.h"
+#pragma clang force_cuda_host_device begin
+#include <stdio.h>
+#pragma clang force_cuda_host_device end
+
+constexpr int MAX_RANK = 4;
+
+template <typename T, std::size_t N>
+__device__ void copy_to_buffer(
+  tops_dte_ctx_t& ctx, 
+  T *buf_l3, 
+  T *buf_l1)
+{
+  tops_dte_ctx_t p_ctx;
+  tops::dte_scope p_s(p_ctx);
+
+  tops::mdspan from(tops::Global, buf_l3, N);
+  tops::mdspan to(tops::Private, buf_l1, N);
+  tops::memcpy(p_ctx, from, to);
+}
+
+extern "C" __global__ void transpose(float *from, float *to, int* input_shape, int* output_shape, int* layout, int tilesz)
+{
+  tops_dte_ctx_t ctx;
+  tops::dte_scope s(ctx);
+
+  // intermediate L1 buffer for shape and layout
+  __valigned__ int buffer_l1[MAX_RANK];
+  copy_to_buffer<int, MAX_RANK>(ctx, input_shape, buffer_l1);
+
+  tops::mdspan src(tops::Global, from, buffer_l1);
+
+  // output shape
+  copy_to_buffer<int, MAX_RANK>(ctx, output_shape, buffer_l1);
+
+  std::size_t blockIndex = blockIdx.z * (gridDim.x * gridDim.y) + blockIdx.y * gridDim.x + blockIdx.x;
+  std::size_t index = blockIndex * (blockDim.x * blockDim.y * blockDim.z) + threadIdx.z * (blockDim.x * blockDim.y)
+                + threadIdx.y * blockDim.x + threadIdx.x;
+                
+  tops::mdspan dst(tops::Global, to + index * tilesz, buffer_l1);
+  
+  // layout parameter
+  copy_to_buffer<int, MAX_RANK>(ctx, layout, buffer_l1);
+
+  //perform transpose
+  tops::transpose(ctx, src, dst, buffer_l1);
+}
