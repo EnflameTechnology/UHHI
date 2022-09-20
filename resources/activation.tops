@@ -1,0 +1,82 @@
+
+#include "tops.h"
+#pragma clang force_cuda_host_device begin
+#include <stdio.h>
+#pragma clang force_cuda_host_device end
+constexpr int BUF_SIZE = 1024;
+
+//supported activation kernels: relu (0), gelu (1), leaky relu (2), tanh (3)
+
+template <typename T, std::size_t N>
+__device__ void copy_to_buffer(
+  tops_dte_ctx_t& ctx, 
+  T *buf_l3, 
+  T *buf_l1)
+{
+  tops_dte_ctx_t p_ctx;
+  tops::dte_scope p_s(p_ctx);
+
+  tops::mdspan from(tops::Global, buf_l3, N);
+  tops::mdspan to(tops::Private, buf_l1, N);
+  tops::memcpy(p_ctx, from, to);
+}
+
+//inputType [input rows, input cols, input activation type]
+//activation type: relu (0), gelu (1), leaky relu (2), tanh (3)
+extern "C"  __global__ void activation(float *x, int* inputType)
+{
+    tops_dte_ctx_t ctx;
+    tops::dte_scope s(ctx);
+    int ITEM_SIZE = sizeof(float);
+
+    __valigned__ int buffer_type[3];
+  
+    copy_to_buffer<int, 3>(ctx, inputType, buffer_type);
+
+    int nRols = buffer_type[0];
+    int nCols = buffer_type[1];
+    int type = buffer_type[2];
+
+    printf("size: %d x %d, activation type: %d", nRols, nCols, type);
+
+    __valigned__ float bufferA[BUF_SIZE];
+    __valigned__ float bufferB[BUF_SIZE];
+    __valigned__ float bufferO[BUF_SIZE];
+
+    tops::mdspan bufA(tops::Private, &bufferA, nCols);
+    tops::mdspan bufB(tops::Private, &bufferB, nCols);
+    tops::mdspan bufO(tops::Private, &bufferO, nCols);
+
+
+    for (int i=0; i<nRols * nCols; i+=nCols) {
+        tops::mdspan srcA(tops::Global, x+i, nCols);
+        tops::memcpy(ctx, srcA, bufA);
+        
+        if (type == 0 || type == 2){ //relu and leaky relu
+            for (int j=0; j<nCols; j++){
+                if (bufferA[j] > 0) {
+                    bufferB[j] = 1.0;
+                } else {
+                    bufferB[j] = (type == 2)? 0.1f : 0.0f;
+                }
+            }
+            const auto &v1 = tops::vload<vfloat>(bufferA);
+            const auto &v2 = tops::vload<vfloat>(bufferB);
+            tops::vstore(tops::vmul<vfloat>(v1, v2), bufferO);
+
+        } else if (type == 3) {//tanh
+            const auto &v1 = tops::vload<vfloat>(bufferA);
+            tops::vstore(tops::vtanh<vfloat>(v1), bufferO);
+
+        } else if (type == 1) {//gelu
+            const auto &v1 = tops::vload<vfloat>(bufferA);
+            tops::vstore(tops::vgelu<vfloat>(v1), bufferO);
+        }
+
+
+        //copy to results
+        tops::mdspan dst(tops::Global, x+i, nCols);
+        tops::memcpy(ctx, bufO, dst);
+    }
+
+}

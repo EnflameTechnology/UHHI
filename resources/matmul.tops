@@ -25,7 +25,6 @@ extern "C" __global__ void matmul(float *matA, float *matB, float* out, int* mat
   
   tops_dte_ctx_t ctx;
   tops::dte_scope s(ctx);
-  int ITEM_SIZE = sizeof(float);
 
   __valigned__ int buffer_shapeB[MAX_RANK];
   
@@ -58,19 +57,19 @@ extern "C" __global__ void matmul(float *matA, float *matB, float* out, int* mat
 
   int ncolumns = buffer_shapeA[1];
 
-  tops::mdspan bufA(tops::Private, &bufferA, ncolumns * ITEM_SIZE);
-  tops::mdspan bufB(tops::Private, &bufferB, ncolumns * ITEM_SIZE);
-  tops::mdspan bufMul(tops::Private, &bufferMul, ncolumns * ITEM_SIZE);
-  tops::mdspan bufOut(tops::Private, &bufferOut, ncolumnsB * ITEM_SIZE);
+  tops::mdspan bufA(tops::Private, &bufferA, ncolumns);
+  tops::mdspan bufB(tops::Private, &bufferB, ncolumns);
+  tops::mdspan bufMul(tops::Private, &bufferMul, ncolumns);
+  tops::mdspan bufOut(tops::Private, &bufferOut, ncolumnsB);
 
   //for each row of matA
   for (int i=0; i<nmatA; i+=ncolumns) {
-    tops::mdspan srcA(tops::Global, matA+i, ncolumns * ITEM_SIZE);
+    tops::mdspan srcA(tops::Global, matA+i, ncolumns);
     tops::memcpy(ctx, srcA, bufA);
 
     for (int j=0; j<nmatB; j+=ncolumns) {
       //element-wise mul of one row of matB with one column of matB
-        tops::mdspan srcB(tops::Global, matBbuffer+j, ncolumns * ITEM_SIZE);
+        tops::mdspan srcB(tops::Global, matBbuffer+j, ncolumns);
         tops::memcpy(ctx, srcB, bufB);
         const auto &v1_ = tops::vload<vfloat>(bufferA);
         const auto &v2_ = tops::vload<vfloat>(bufferB);
