@@ -54,7 +54,7 @@ fn network_test() -> DeviceResult<()> {
         Layer::<f32> {op : "tanh", weight : None, input_size : (N - K + 1, N - K + 1), output_size : (N - K + 1, N - K + 1), out_ref : None}, //output shape (N - K + 1) * (N - K + 1)
 
         Layer::<f32> {op : "matmul", weight: None, input_size : (N - K + 1, N - K + 1), output_size : (N - K + 1, N - K + 1), out_ref : None}, // no weight in the last layer
-        Layer::<f32> {op : "leaky", weight : None, input_size : (N - K + 1, N - K + 1), output_size : (N - K + 1, N - K + 1), out_ref : None}, //output shape (N - K + 1) * (N - K + 1)
+        Layer::<f32> {op : "gelu", weight : None, input_size : (N - K + 1, N - K + 1), output_size : (N - K + 1, N - K + 1), out_ref : None}, //output shape (N - K + 1) * (N - K + 1)
     ];
 
     let mut matA = CuDeviceBuffer::from_slice(&[0.5f32; N * N])?;
@@ -62,13 +62,13 @@ fn network_test() -> DeviceResult<()> {
     let mut matOut = CuDeviceBuffer::from_slice(&[0.0f32; N * N])?;
     let mut matConvOut = CuDeviceBuffer::from_slice(&[0.0f32; (N - K + 1) * (N - K + 1)])?;
 
-    let map_act = HashMap::from([("relu", 0), ("elu", 1), ("leaky", 2), ("tanh", 3)]);
+    let map_act = HashMap::from([("relu", 0), ("gelu", 1), ("leaky", 2), ("tanh", 3)]);
 
     let mut out_ref : Option<&CuDeviceBuffer<f32>> = None;
     for layer in layers {
-        if ["relu", "elu", "leaky", "tanh"].contains(&layer.op) {
-            let function_name = "activation_array_kernel";
-            match load_module("activation") {
+        if ["relu", "gelu", "leaky", "tanh"].contains(&layer.op) {
+            let function_name = "activation";
+            match load_module(function_name) {
                 Ok(module) => {
                     let kernel = module.get_function(&function_name)?;
                     unsafe {
@@ -162,57 +162,65 @@ fn network_test() -> DeviceResult<()> {
 }
 
 fn main() -> DeviceResult<()> {
-    network_test();
+    println!("******************\ninfo: start uhal cuda_backend network test!\n");
+
+    match network_test() {
+        Ok(()) => {
+            println!("\nLaunched network_test successfully.");
+        }
+        Err(e) => {
+            println!("\nLaunche network_test failed.");
+            return Err(e);
+        }
+    }
+
+    println!("\n\n\n******************\ninfo: start uhal tops_backend test!\n");
     // Set up the context, load the module, and create a stream to run kernels in.
     let _ctx = cuda::CuApi::quick_init()?;
-
-    let ptx = "./resources/add.ptx".to_string();
-    let module = CuModule::from_file(&ptx)?;
     let stream = CuStream::new(StreamFlags::NON_BLOCKING, None)?;
 
-    // Create buffers for data
-    let mut in_x = CuDeviceBuffer::from_slice(&[1.0f32; 10])?;
-    let mut in_y = CuDeviceBuffer::from_slice(&[2.0f32; 10])?;
-    let mut out_1 = CuDeviceBuffer::from_slice(&[0.0f32; 10])?;
-    let mut out_2 = CuDeviceBuffer::from_slice(&[0.0f32; 10])?;
+    // matmul of 3 x 3 and 3 x 3  -> 3 x 3
+    const M : usize = 3;
+    const N : usize = 3;
 
-    // This kernel adds each element in `in_x` and `in_y` and writes the result into `out`.
+    const Nbytes : usize = M * N * 4;
+    let mut matA = CuDeviceBuffer::from_slice(&[1.0f32, 2.0f32, 3.0f32, 4.0f32, 5.0f32, 6.0f32, 1.0f32, 2.0f32, 3.0f32])?;
+    let mut matB = CuDeviceBuffer::from_slice(&[4.0f32, 5.0f32, 1.0f32, 2.0f32, 3.0f32, 4.0f32, 5.0f32, 1.0f32, 2.0f32])?;
+    let mut matOut = CuDeviceBuffer::from_slice(&[0.0f32; M * N])?;
+
+    println!("info: launching kernel!\n");
+
+    let fnname = "matmul";
+    let module = load_module(fnname)?;
+    let kernel = module.get_function(&fnname)?;
     unsafe {
-        // Launch the kernel with one block of one thread, no dynamic shared memory on `stream`.
-        let result = launch!(module.sum<<<1, 1, 0, stream>>>(
-            in_x.as_device_ptr(),
-            in_y.as_device_ptr(),
-            out_1.as_device_ptr(),
-            out_1.len()
-        ));
-        result?;
-
-        // Launch the kernel again using the `function` form:
-        let function_name = "sum".to_string();
-        let sum = module.get_function(&function_name)?;
-        // Launch with 1x1x1 (1) blocks of 10x1x1 (10) threads, to show that you can use tuples to
-        // configure grid and block size.
-        let result = launch!(sum<<<(1, 1, 1), (10, 1, 1), 0, stream>>>(
-            in_x.as_device_ptr(),
-            in_y.as_device_ptr(),
-            out_2.as_device_ptr(),
-            out_2.len()
+        let result = launch!(kernel<<<(1, 1, 1), (3, 3, 1), 0, stream>>>(
+            matA.as_device_ptr(),
+            matB.as_device_ptr(),
+            matOut.as_device_ptr(),
+            N
         ));
         result?;
     }
 
+    println!("info: stream synchronization...\n");
     // Kernel launches are asynchronous, so we wait for the kernels to finish executing.
-    stream.synchronize()?;
+    stream.synchronize()?;  
 
-    // Copy the results back to host memory
-    let mut out_host = [0.0f32; 20];
-    out_1.copy_to(&mut out_host[0..10])?;
-    out_2.copy_to(&mut out_host[10..20])?;
 
-    for x in out_host.iter() {
-        assert_eq!(3.0 as u32, *x as u32);
+    let mut out_host = vec![0.0f32; M * N];
+    matOut.copy_to(&mut out_host[0..M * N])?;
+
+    println!("\n\nResults of forward pass******************");
+    for x in 0..M {
+        for y in 0..N {
+            print!("{:.5} ", out_host[x * N + y]);
+        }
+        println!("{}", "");
     }
 
-    println!("Launched kernel successfully.");
+    println!("Launch kernel success for uhal CUDA!");
+
+    println!("\n\nPASSED!\n\n");
     Ok(())
 }
