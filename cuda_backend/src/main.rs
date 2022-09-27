@@ -65,6 +65,7 @@ fn network_test() -> DeviceResult<()> {
     let map_act = HashMap::from([("relu", 0), ("gelu", 1), ("leaky", 2), ("tanh", 3)]);
 
     let mut out_ref : Option<&CuDeviceBuffer<f32>> = None;
+    let mut out_size : Option<(usize, usize)> = None;
     for layer in layers {
         if ["relu", "gelu", "leaky", "tanh"].contains(&layer.op) {
             let function_name = "activation";
@@ -80,6 +81,7 @@ fn network_test() -> DeviceResult<()> {
                         result?;
                     }
                     out_ref = Some(&matA);
+                    out_size = Some(layer.output_size);
                 }
                 _ => { println!("Failed to load kernel!"); break;}
             }
@@ -104,10 +106,11 @@ fn network_test() -> DeviceResult<()> {
                         }
                     }
                     out_ref = Some(&matA);
+                    out_size = Some(layer.output_size);
                 }
                 _ => { println!("Failed to load kernel!"); break; }
             }
-        } else {
+        } else if layer.op == "convolution" {
             match load_module(layer.op) {
                 Ok(module) => {
                     let kernel = module.get_function(&layer.op)?;
@@ -132,10 +135,14 @@ fn network_test() -> DeviceResult<()> {
                         }
                     }
                     out_ref = Some(&matA);
+                    out_size = Some(layer.output_size);
 
                 }
                 _ => { println!("Failed to load kernel!"); break; }
             }
+        } else {
+            println!("Operation {} not supported!", layer.op); 
+            break;
         }
     }
     // Wait asynchronous kernels to finish.
@@ -145,13 +152,21 @@ fn network_test() -> DeviceResult<()> {
         Some(out) => {
             let mut conv_out_host = vec![0.0f32; out.len()];
             out.copy_to(&mut conv_out_host[0..out.len()])?;
-            println!("\n\nResults after convolution******************");
-            for x in 0..(N - K + 1) {
-                for y in 0..(N - K + 1) {
-                    print!("{:.5} ", conv_out_host[x * (N - K + 1) + y]);
+            match out_size {
+                Some(sz) => {
+                    let W = sz.0;
+                    let H = sz.1;
+                    println!("\n\nResults of forward pass******************");
+                    for x in 0..H {
+                        for y in 0..W {
+                            print!("{:.5} ", conv_out_host[x * W + y]);
+                        }
+                        println!("{}", "");
+                    }
                 }
-                println!("{}", "");
+                _ => { println!("Unable to obtain compute result!") }
             }
+
         }
         _ => { println!("Unable to obtain compute result!")}
     }

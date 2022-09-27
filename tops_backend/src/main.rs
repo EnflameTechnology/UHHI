@@ -200,24 +200,22 @@ fn network_test() -> DeviceResult<()> {
     //Neural network layers: matmul(tanh act) -> matmul(relu act) -> matmul(tanh act) -> convolution(3x3 kernel, tanh act) -> matmul(tanh act) -> matmul(leaky act)
     let layers = vec![
         Layer::<f32> {op : "matmul", weight: Some(TopsDeviceBuffer::from_slice(&[0.01f32; N * N])?), input_size : (N, N), output_size : (N, N), out_ref : None}, //weight is N x N matric for next layer
-        Layer::<f32> {op : "relu", weight : None, input_size : (N, N), output_size : (N, N), out_ref : None}, //out N x N
-
-        Layer::<f32> {op : "matmul", weight: Some(TopsDeviceBuffer::from_slice(&[0.02f32; N * N])?), input_size : (N, N), output_size : (N, N), out_ref : None}, //weight is N x N matric for next layer
         Layer::<f32> {op : "tanh", weight : None, input_size : (N, N), output_size : (N, N), out_ref : None}, //out N x N
 
-        // Layer::<f32> {op : "matmul", weight: Some(TopsDeviceBuffer::from_slice(&[0.02f32; N * N])?), input_size : (N, N), output_size : (N, N), out_ref : None}, //weight is N x N matric for next layer
+        Layer::<f32> {op : "matmul", weight: Some(TopsDeviceBuffer::from_slice(&[0.02f32; N * N])?), input_size : (N, N), output_size : (N, N), out_ref : None}, //weight is N x N matric for next layer
+        Layer::<f32> {op : "relu", weight : None, input_size : (N, N), output_size : (N, N), out_ref : None}, //out N x N
 
         Layer::<f32> {op : "matmul", weight: Some(TopsDeviceBuffer::from_slice(&[0.5f32; K * K])?), input_size : (N, N), output_size : (N, N), out_ref : None}, //weight is convolution kernel for next layer
-        Layer::<f32> {op : "gelu", weight : None, input_size : (N, N), output_size : (N, N), out_ref : None}, //out N x N
+        Layer::<f32> {op : "tanh", weight : None, input_size : (N, N), output_size : (N, N), out_ref : None}, //out N x N
 
-        //Layer::<f32> {op : "convolution", weight: Some(CuDeviceBuffer::from_slice(&[0.2f32; (N - K + 1) * (N - K + 1)])?), input_size : (N, N), output_size : (N - K + 1, N - K + 1), out_ref : None}, //weight is (N - K + 1) * (N - K + 1) matric for next layer
-       // Layer::<f32> {op : "tanh", weight : None, input_size : (N - K + 1, N - K + 1), output_size : (N - K + 1, N - K + 1), out_ref : None},  //out (N - K + 1) x (N - K + 1)
+        Layer::<f32> {op : "convolution", weight: Some(TopsDeviceBuffer::from_slice(&[1.0f32; (N - K + 1) * (N - K + 1)])?), input_size : (N, N), output_size : (N - K + 1, N - K + 1), out_ref : None}, //weight is (N - K + 1) * (N - K + 1) matric for next layer
+        Layer::<f32> {op : "tanh", weight : None, input_size : (N - K + 1, N - K + 1), output_size : (N - K + 1, N - K + 1), out_ref : None},  //out (N - K + 1) x (N - K + 1)
         
-        //Layer::<f32> {op : "matmul", weight: Some(CuDeviceBuffer::from_slice(&[0.2f32; (N - K + 1) * (N - K + 1)])?), input_size : (N - K + 1, N - K + 1), output_size : (N - K + 1, N - K + 1), out_ref : None}, //weight is (N - K + 1) * (N - K + 1) matric for next layer
-        //Layer::<f32> {op : "tanh", weight : None, input_size : (N - K + 1, N - K + 1), output_size : (N - K + 1, N - K + 1), out_ref : None}, //output shape (N - K + 1) * (N - K + 1)
+        Layer::<f32> {op : "matmul", weight: Some(TopsDeviceBuffer::from_slice(&[0.2f32; (N - K + 1) * (N - K + 1)])?), input_size : (N - K + 1, N - K + 1), output_size : (N - K + 1, N - K + 1), out_ref : None}, //weight is (N - K + 1) * (N - K + 1) matric for next layer
+        Layer::<f32> {op : "tanh", weight : None, input_size : (N - K + 1, N - K + 1), output_size : (N - K + 1, N - K + 1), out_ref : None}, //output shape (N - K + 1) * (N - K + 1)
 
-        //Layer::<f32> {op : "matmul", weight: None, input_size : (N - K + 1, N - K + 1), output_size : (N - K + 1, N - K + 1), out_ref : None}, // no weight in the last layer
-       // Layer::<f32> {op : "leaky", weight : None, input_size : (N - K + 1, N - K + 1), output_size : (N - K + 1, N - K + 1), out_ref : None}, //output shape (N - K + 1) * (N - K + 1)
+        Layer::<f32> {op : "matmul", weight: None, input_size : (N - K + 1, N - K + 1), output_size : (N - K + 1, N - K + 1), out_ref : None}, // no weight in the last layer
+        Layer::<f32> {op : "gelu", weight : None, input_size : (N - K + 1, N - K + 1), output_size : (N - K + 1, N - K + 1), out_ref : None}, //output shape (N - K + 1) * (N - K + 1)
     ];
 
     let mut matA = TopsDeviceBuffer::from_slice(&[0.5f32; N * N])?;
@@ -228,6 +226,7 @@ fn network_test() -> DeviceResult<()> {
     let map_act = HashMap::from([("relu", 0), ("gelu", 1), ("leaky", 2), ("tanh", 3)]);
 
     let mut out_ref : Option<&TopsDeviceBuffer<f32>> = None;
+    let mut out_size : Option<(usize, usize)> = None;
     for layer in layers {
         if ["relu", "gelu", "leaky", "tanh"].contains(&layer.op) {
             let function_name = "activation";
@@ -243,6 +242,7 @@ fn network_test() -> DeviceResult<()> {
                         result?;
                     }
                     out_ref = Some(&matA);
+                    out_size = Some(layer.output_size);
                 }
                 _ => { println!("Failed to load kernel!"); break;}
             }
@@ -271,22 +271,25 @@ fn network_test() -> DeviceResult<()> {
                         }
                     }
                     out_ref = Some(&matA);
+                    out_size = Some(layer.output_size);
                 }
-                _ => { println!("Failed to load kernel!"); break; }
+                _ => { println!("\nFailed to load kernel (matmul)!"); break; }
             }
-        } else {
+        } else if layer.op == "convolution" {
             match load_module(layer.op) {
                 Ok(module) => {
                     let kernel = module.get_function(&layer.op)?;
+                    let mut inputShapeA = TopsDeviceBuffer::from_slice(&[layer.input_size.0 as i32, layer.input_size.1 as i32, 1i32, 1i32])?;
+                    let mut inputShapeB = TopsDeviceBuffer::from_slice(&[K as i32, K as i32, 1i32, 1i32])?;
+                    let mut channelInfo = TopsDeviceBuffer::from_slice(&[1i32, 1i32, 1i32, 1i32])?;
                     unsafe {
                         let result = launch!(kernel<<<(1, 1, 1), (1, 1, 1), 0, stream>>>(
                             matA.as_device_ptr(),
-                            matConvOut.as_device_ptr(),
                             matB.as_device_ptr(),
-                            layer.input_size.0 as u32, layer.input_size.1 as u32,
-                            layer.output_size.0 as u32, layer.output_size.1 as u32,
-                            K,
-                            K
+                            matConvOut.as_device_ptr(),
+                            inputShapeA.as_device_ptr(),
+                            inputShapeB.as_device_ptr(),
+                            channelInfo.as_device_ptr()
                         ));
                         result?;
                     }
@@ -299,10 +302,14 @@ fn network_test() -> DeviceResult<()> {
                         }
                     }
                     out_ref = Some(&matA);
+                    out_size = Some(layer.output_size);
 
                 }
-                _ => { println!("Failed to load kernel!"); break; }
+                _ => { println!("\nFailed to load kernel (convolution)!"); break; }
             }
+        } else {
+            println!("Operation {} not supported!", layer.op); 
+            break;
         }
     }
     // Wait asynchronous kernels to finish.
@@ -312,13 +319,21 @@ fn network_test() -> DeviceResult<()> {
         Some(out) => {
             let mut conv_out_host = vec![0.0f32; out.len()];
             out.copy_to(&mut conv_out_host[0..out.len()])?;
-            println!("\n\nResults of forward pass******************");
-            for x in 0..N {
-                for y in 0..N {
-                    print!("{:.5} ", conv_out_host[x * N + y]);
+            match out_size {
+                Some(sz) => {
+                    let W = sz.0;
+                    let H = sz.1;
+                    println!("\n\nResults of forward pass******************");
+                    for x in 0..H {
+                        for y in 0..W {
+                            print!("{:.5} ", conv_out_host[x * W + y]);
+                        }
+                        println!("{}", "");
+                    }
                 }
-                println!("{}", "");
+                _ => { println!("Unable to obtain compute result!") }
             }
+
         }
         _ => { println!("Unable to obtain compute result!")}
     }
