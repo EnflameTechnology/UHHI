@@ -51,34 +51,32 @@ convolution(float* lhs, float* rhs, float* out, int* matShape, int* kernelShape,
   int nH = H - H_k + 1;
 
   //int lsize = samples * W * H * input_channel;
-  //int ksize = W_k * H_k * input_channel * output_channel;
+  int ksize = W_k * H_k * input_channel * output_channel;
   //int osize = samples * (W - W_k + 1) * (H - H_k + 1) * output_channel;
 
   __valigned__ float buffer_rhs[MAX_DIM*MAX_DIM];
   __valigned__ float buffer_lhs[MAX_DIM*MAX_DIM];
   __valigned__ float bufferMul[MAX_DIM*MAX_DIM];
   __valigned__ float bufferOut[MAX_DIM*MAX_DIM];
-
-  //img2col of the kernel
-  for (int i=0; i<H_k; i++) {
-    tops::mdspan src(tops::Global, rhs + i * W_k, W_k);
-    tops::mdspan buf_rhs(tops::Private, &buffer_rhs + i * W_k, W_k);
-    tops::memcpy(ctx, src, buf_rhs);
-  }
+  
+  tops::mdspan src(tops::Global, rhs, ksize);
+  tops::mdspan buf_rhs(tops::Private, &buffer_rhs, ksize);
+  tops::memcpy(ctx, src, buf_rhs);
 
   tops::mdspan bufOut(tops::Private, &bufferOut, nW);
+  tops::mdspan bufMul(tops::Private, &bufferMul, ksize);
 
   for (int i=0; i<nH; i+=stride) {
-    for (int j=0; j<nW; j+= stride) {
+    for (int j=0; j<nW; j+=stride) {
       int idx = i * W + j;
 
       //img2col of a patch
       for (int k=0; k<H_k; k++) {
         tops::mdspan src(tops::Global, lhs + idx + k * W, W_k);
-        tops::mdspan buf_lhs(tops::Private, &buffer_lhs + k * W_k, W_k);
+        tops::mdspan buf_lhs(tops::Private, (float*)&buffer_lhs + k * W_k, W_k);
         tops::memcpy(ctx, src, buf_lhs);
       }
-      
+
       //perform vector mul and sum
       const auto &v1_ = tops::vload<vfloat>(buffer_lhs);
       const auto &v2_ = tops::vload<vfloat>(buffer_rhs);
@@ -86,15 +84,16 @@ convolution(float* lhs, float* rhs, float* out, int* matShape, int* kernelShape,
 
       //sum of mul results
       float sums = 0.0;
-      for (int m=0; m<W_k*H_k; m++){
+      for (int m=0; m<ksize; m++){
         sums += bufferMul[m];
       }
       bufferOut[j] = sums;
     }
-
+   
     //copy to results
     tops::mdspan dst(tops::Global, out + i * nW, nW);
     tops::memcpy(ctx, bufOut, dst);
+    
   }
   
 }
