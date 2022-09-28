@@ -343,7 +343,7 @@ fn network_test() -> DeviceResult<()> {
     Ok(())
 }
 
-fn main() -> DeviceResult<()> {
+fn test() -> DeviceResult<()> {
     println!("******************\ninfo: start legacy test!\n");
     match legacy() {
         Ok(()) => {
@@ -351,18 +351,6 @@ fn main() -> DeviceResult<()> {
         }
         Err(e) => {
             println!("\nLaunche legacy failed.");
-            return Err(e);
-        }
-    }
-
-    println!("******************\ninfo: start uhal tops_backend network test!\n");
-
-    match network_test() {
-        Ok(()) => {
-            println!("\nLaunched network_test successfully.");
-        }
-        Err(e) => {
-            println!("\nLaunche network_test failed.");
             return Err(e);
         }
     }
@@ -426,6 +414,22 @@ fn main() -> DeviceResult<()> {
 
     println!("Launch kernel success for uhal tops!");
 
+    println!("\n\nPASSED!\n\n");
+    Ok(())
+}
+
+fn main() -> DeviceResult<()> {
+    println!("******************\ninfo: start uhal tops_backend network test!\n");
+    
+    match network_test() {
+        Ok(()) => {
+            println!("\nLaunched network_test successfully.");
+        }
+        Err(e) => {
+            println!("\nLaunche network_test failed.");
+            return Err(e);
+        }
+    }
     println!("\n\nPASSED!\n\n");
     Ok(())
 }

@@ -175,20 +175,8 @@ fn network_test() -> DeviceResult<()> {
     Ok(())
 }
 
-fn main() -> DeviceResult<()> {
-    println!("******************\ninfo: start uhal cuda_backend network test!\n");
-
-    match network_test() {
-        Ok(()) => {
-            println!("\nLaunched network_test successfully.");
-        }
-        Err(e) => {
-            println!("\nLaunche network_test failed.");
-            return Err(e);
-        }
-    }
-
-    println!("\n\n\n******************\ninfo: start uhal tops_backend test!\n");
+fn test() -> DeviceResult<()> {
+    println!("\n\n\n******************\ninfo: start uhal cuda_backend test!\n");
     // Set up the context, load the module, and create a stream to run kernels in.
     let _ctx = cuda::CuApi::quick_init()?;
     let stream = CuStream::new(StreamFlags::NON_BLOCKING, None)?;
@@ -235,6 +223,23 @@ fn main() -> DeviceResult<()> {
 
     println!("Launch kernel success for uhal CUDA!");
 
+    println!("\n\nPASSED!\n\n");
+    Ok(())
+}
+
+
+fn main() -> DeviceResult<()> {
+    println!("******************\ninfo: start uhal cuda_backend network test!\n");
+
+    match network_test() {
+        Ok(()) => {
+            println!("\nLaunched network_test successfully.");
+        }
+        Err(e) => {
+            println!("\nLaunche network_test failed.");
+            return Err(e);
+        }
+    }
     println!("\n\nPASSED!\n\n");
     Ok(())
 }
