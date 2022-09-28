@@ -1,31 +1,47 @@
 #define BLOCK_SIZE 32
-extern "C" __global__ void convolution(float* A, float* B, float* C, int HA, int WA, int HB, int WB, int HC, int WC)
+constexpr int MAX_DIM = 15; //max kernel size 15 x 15
+
+__device__ void mul_vectors(float *a, float *b, float *c, int N)
 {
-	int col = blockIdx.x * (BLOCK_SIZE - WC + 1) + threadIdx.x;
-	int row = blockIdx.y * (BLOCK_SIZE - WC + 1) + threadIdx.y;
-	int row_i = row - WC + 1;
-	int col_i = col - WC + 1;
+	// int id = blockDim.x * blockIdx.x + threadIdx.x;
+	for(int id=0; id < N; id++) c[id] = a[id] * b[id];
+}
 
-	float tmp = 0;
+extern "C" __global__ void convolution(float* lhs, float* kernel, float* out, int W, int H, int W_k, int H_k) 
+{
+  int stride = 1;
+  int nW = W - W_k + 1;
+  int nH = H - H_k + 1;
 
-	__shared__ float shm[BLOCK_SIZE][BLOCK_SIZE];
+  int ksize = W_k * H_k;
+  
+  float buffer_lhs[MAX_DIM*MAX_DIM];
+  float buffer_mul[MAX_DIM*MAX_DIM];
+  float buffer_out[MAX_DIM*MAX_DIM];
 
-	if (row_i < WA && row_i >= 0 && col_i < WA && col_i >= 0)
-	{
-		shm[threadIdx.y][threadIdx.x] = A[col_i * WA + row_i];
-	}
-	else
-	{
-		shm[threadIdx.y][threadIdx.x] = 0;
-	}
-
-	__syncthreads();
-
-	if (threadIdx.y < (BLOCK_SIZE - WC + 1) && threadIdx.x < (BLOCK_SIZE - WC + 1) && row < (WB - WC + 1) && col < (WB - WC + 1))
-	{
-		for (int i = 0; i< WC;i++)
-			for (int j = 0;j<WC;j++)
-				tmp += shm[threadIdx.y + i][threadIdx.x + j] * C[j*WC + i];
-		B[col*WB + row] = tmp;
-	}
+  for (int i=0; i<nH; i+=stride) 
+  {
+    for (int j=0; j<nW; j+=stride) 
+	  {
+      int idx = i * W + j;
+      
+      //img2col of a patch
+      for (int k=0; k<H_k; k++) {
+        memcpy((float*)&buffer_lhs + (k * W_k), lhs + idx + k * W, W_k * sizeof(float));
+      }
+    
+      //perform vector mul and sum
+	    mul_vectors((float*)&buffer_lhs, kernel, (float*)&buffer_mul, ksize);
+      //sum of mul results
+      float sums = 0.0;
+      for (int m=0; m<ksize; m++) 
+	    {
+        sums += buffer_mul[m];
+      }
+      buffer_out[j] = sums;
+    }
+   
+    //copy to results
+	  memcpy(out + i * nW, &buffer_out, nW * sizeof(float));    
+  }
 }

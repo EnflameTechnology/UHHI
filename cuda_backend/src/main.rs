@@ -115,14 +115,13 @@ fn network_test() -> DeviceResult<()> {
                 Ok(module) => {
                     let kernel = module.get_function(&layer.op)?;
                     unsafe {
-                        let result = launch!(kernel<<<(1, 1, 1), (layer.input_size.0 as u32, layer.input_size.1 as u32, 1), 0, stream>>>(
+                        let result = launch!(kernel<<<(1, 1, 1), (1, 1, 1), 0, stream>>>(
                             matA.as_device_ptr(),
-                            matConvOut.as_device_ptr(),
                             matB.as_device_ptr(),
-                            layer.input_size.0 as u32, layer.input_size.1 as u32,
-                            layer.output_size.0 as u32, layer.output_size.1 as u32,
-                            K,
-                            K
+                            matConvOut.as_device_ptr(),
+                            layer.input_size.0 as i32, layer.input_size.1 as i32,
+                            K as i32,
+                            K as i32
                         ));
                         result?;
                     }
