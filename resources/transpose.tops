@@ -16,7 +16,7 @@ __device__ void copy_to_buffer(
 
   tops::mdspan from(tops::Global, buf_l3, N);
   tops::mdspan to(tops::Private, buf_l1, N);
-  tops::memcpy(p_ctx, from, to);
+  tops::memcpy(p_ctx, to, from);
 }
 
 extern "C" __global__ void transpose(float *from, float *to, int* input_shape, int* output_shape, int* layout, int tilesz)

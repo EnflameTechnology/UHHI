@@ -18,7 +18,7 @@ __device__ void copy_to_buffer(
 
   tops::mdspan from(tops::Global, buf_l3, N);
   tops::mdspan to(tops::Private, buf_l1, N);
-  tops::memcpy(p_ctx, from, to);
+  tops::memcpy(p_ctx, to, from);
 }
 
 // lhs (input tensorl), rhs (kernel tensor), out (output tensor), matShape ([width, height, 1, 1]), kernelShape ([width, height, 1, 1])
@@ -61,7 +61,7 @@ convolution(float* lhs, float* rhs, float* out, int* matShape, int* kernelShape,
   
   tops::mdspan src(tops::Global, rhs, ksize);
   tops::mdspan buf_rhs(tops::Private, &buffer_rhs, ksize);
-  tops::memcpy(ctx, src, buf_rhs);
+  tops::memcpy(ctx, buf_rhs, src);
 
   tops::mdspan bufOut(tops::Private, &bufferOut, nW);
   tops::mdspan bufMul(tops::Private, &bufferMul, ksize);
@@ -74,7 +74,7 @@ convolution(float* lhs, float* rhs, float* out, int* matShape, int* kernelShape,
       for (int k=0; k<H_k; k++) {
         tops::mdspan src(tops::Global, lhs + idx + k * W, W_k);
         tops::mdspan buf_lhs(tops::Private, (float*)&buffer_lhs + k * W_k, W_k);
-        tops::memcpy(ctx, src, buf_lhs);
+        tops::memcpy(ctx, buf_lhs, src);
       }
 
       //perform vector mul and sum
@@ -92,7 +92,7 @@ convolution(float* lhs, float* rhs, float* out, int* matShape, int* kernelShape,
    
     //copy to results
     tops::mdspan dst(tops::Global, out + i * nW, nW);
-    tops::memcpy(ctx, bufOut, dst);
+    tops::memcpy(ctx, dst, bufOut);
     
   }
   

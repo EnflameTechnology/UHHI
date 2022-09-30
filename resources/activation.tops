@@ -18,7 +18,7 @@ __device__ void copy_to_buffer(
 
   tops::mdspan from(tops::Global, buf_l3, N);
   tops::mdspan to(tops::Private, buf_l1, N);
-  tops::memcpy(p_ctx, from, to);
+  tops::memcpy(p_ctx, to, from);
 }
 
 //inputType [input rows, input cols, input activation type]
@@ -50,7 +50,7 @@ extern "C"  __global__ void activation(float *x, int* inputType)
 
     for (int i=0; i<nRols * nCols; i+=nCols) {
         tops::mdspan srcA(tops::Global, x+i, nCols);
-        tops::memcpy(ctx, srcA, bufA);
+        tops::memcpy(ctx, bufA, srcA);
         
         if (type == 0 || type == 2){ //relu and leaky relu
             for (int j=0; j<nCols; j++){
@@ -76,7 +76,7 @@ extern "C"  __global__ void activation(float *x, int* inputType)
 
         //copy to results
         tops::mdspan dst(tops::Global, x+i, nCols);
-        tops::memcpy(ctx, bufO, dst);
+        tops::memcpy(ctx, dst, bufO);
     }
 
 }

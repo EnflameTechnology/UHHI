@@ -17,7 +17,7 @@ __device__ void copy_to_buffer(
 
   tops::mdspan from(tops::Global, buf_l3, N);
   tops::mdspan to(tops::Private, buf_l1, N);
-  tops::memcpy(p_ctx, from, to);
+  tops::memcpy(p_ctx, to, from);
 }
 
 extern "C" __global__ void matmul(float *matA, float *matB, float* out, int* matA_shape, int* matB_shape)
@@ -44,7 +44,7 @@ extern "C" __global__ void matmul(float *matA, float *matB, float* out, int* mat
   __valigned__ int matB_output_layout[4] = {1, 0, 2, 3};
 
   //transpose of matB to temp buffer (matBbuffer)
-  tops::transpose(ctx, src, dst, matB_output_layout);
+  tops::transpose(ctx, dst, src, matB_output_layout);
 
   __valigned__ int buffer_shapeA[MAX_RANK];
   copy_to_buffer<int, MAX_RANK>(ctx, matA_shape, buffer_shapeA);
@@ -65,12 +65,12 @@ extern "C" __global__ void matmul(float *matA, float *matB, float* out, int* mat
   //for each row of matA
   for (int i=0; i<nmatA; i+=ncolumns) {
     tops::mdspan srcA(tops::Global, matA+i, ncolumns);
-    tops::memcpy(ctx, srcA, bufA);
+    tops::memcpy(ctx, bufA, srcA);
 
     for (int j=0; j<nmatB; j+=ncolumns) {
       //element-wise mul of one row of matB with one column of matB
         tops::mdspan srcB(tops::Global, matBbuffer+j, ncolumns);
-        tops::memcpy(ctx, srcB, bufB);
+        tops::memcpy(ctx, bufB, srcB);
         const auto &v1_ = tops::vload<vfloat>(bufferA);
         const auto &v2_ = tops::vload<vfloat>(bufferB);
         tops::vstore(tops::vmul<vfloat>(v1_, v2_), bufferMul);
@@ -85,7 +85,7 @@ extern "C" __global__ void matmul(float *matA, float *matB, float* out, int* mat
     }
     //copy to results
     tops::mdspan dst(tops::Global, out + (i / ncolumns) * ncolumnsB, ncolumnsB);
-    tops::memcpy(ctx, bufOut, dst);
+    tops::memcpy(ctx, dst, bufOut);
   }
   
 }
