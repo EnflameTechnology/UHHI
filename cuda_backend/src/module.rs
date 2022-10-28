@@ -24,7 +24,10 @@ use crate::memory::{CopyDestination, CuDevicePointer};
 ///TODO
 pub struct CuModuleJitOption {}
 
+#[derive(Debug)]
 pub struct CuModule(CUmodule);
+
+unsafe impl Sync for CuModule {}
 
 #[cfg(unix)]
 fn path_to_bytes<P: AsRef<Path>>(path: P) -> Vec<u8> {

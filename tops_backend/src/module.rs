@@ -21,8 +21,10 @@ use crate::memory::{TopsDevicePointer, CopyDestination};
 use crate::error::ToResult;
 
 pub struct TopsModuleJitOption{}
-
+#[derive(Debug)]
 pub struct TopsModule(topsModule_t);
+
+unsafe impl Sync for TopsModule {}
 
 #[cfg(unix)]
 fn path_to_bytes<P: AsRef<Path>>(path: P) -> Vec<u8> {

@@ -27,6 +27,7 @@ use crate::event::TopsEvent;
 use crate::function::TopsFunction;
 use crate::error::ToResult;
 
+#[derive(Debug)]
 pub struct TopsStream(topsStream_t);
 
 unsafe impl Send for TopsStream {}

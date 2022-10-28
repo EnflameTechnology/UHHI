@@ -26,6 +26,7 @@ use crate::error::ToResult;
 use crate::event::CuEvent;
 use crate::function::CuFunction;
 
+#[derive(Debug)]
 pub struct CuStream(CUstream);
 
 unsafe impl Send for CuStream {}
