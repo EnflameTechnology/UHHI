@@ -4,7 +4,7 @@
 #pragma clang force_cuda_host_device end
 
 constexpr int MAX_RANK = 4;
-
+constexpr int MAX_DIM = 512; //maximum transpose input size: 512 x 512
 template <typename T, std::size_t N>
 __device__ void copy_to_buffer(
   tops_dte_ctx_t& ctx, 
@@ -19,29 +19,33 @@ __device__ void copy_to_buffer(
   tops::memcpy(p_ctx, to, from);
 }
 
-extern "C" __global__ void transpose(float *from, float *to, int* input_shape, int* output_shape, int* layout, int tilesz)
+
+extern "C" __global__ void transpose(float *matA, float *out, int* matA_shape)
 {
+  
   tops_dte_ctx_t ctx;
   tops::dte_scope s(ctx);
 
-  // intermediate L1 buffer for shape and layout
-  __valigned__ int buffer_l1[MAX_RANK];
-  copy_to_buffer<int, MAX_RANK>(ctx, input_shape, buffer_l1);
+  __valigned__ int buffer_shapeA[MAX_RANK];
+  
+  copy_to_buffer<int, MAX_RANK>(ctx, matA_shape, buffer_shapeA);
+  int nmatA = buffer_shapeA[0] * buffer_shapeA[1];
 
-  tops::mdspan src(tops::Global, from, buffer_l1);
+  tops::mdspan src(tops::Global, matA, buffer_shapeA);
 
-  // output shape
-  copy_to_buffer<int, MAX_RANK>(ctx, output_shape, buffer_l1);
+  __valigned__ int output_shape[4] = {buffer_shapeA[1], buffer_shapeA[0], buffer_shapeA[2], buffer_shapeA[3]};  
 
-  std::size_t blockIndex = blockIdx.z * (gridDim.x * gridDim.y) + blockIdx.y * gridDim.x + blockIdx.x;
-  std::size_t index = blockIndex * (blockDim.x * blockDim.y * blockDim.z) + threadIdx.z * (blockDim.x * blockDim.y)
-                + threadIdx.y * blockDim.x + threadIdx.x;
-                
-  tops::mdspan dst(tops::Global, to + index * tilesz, buffer_l1);
+  //size of matAbuffer will impact the maximum input dimension of matA
+  __shared__ float matAbuffer[MAX_DIM*MAX_DIM];           
+  tops::mdspan dst(tops::Global, matAbuffer, output_shape);
   
   // layout parameter
-  copy_to_buffer<int, MAX_RANK>(ctx, layout, buffer_l1);
+  __valigned__ int output_layout[4] = {1, 0, 2, 3};
 
-  //perform transpose
-  tops::transpose(ctx, src, dst, buffer_l1);
+  //transpose of matA to temp buffer (matAbuffer)
+  tops::transpose(ctx, dst, src, output_layout);
+
+  tops::mdspan dst1(tops::Global, matAbuffer, nmatA);
+  tops::mdspan dst_out(tops::Global, out, nmatA);
+  tops::memcpy(ctx, dst_out, dst1);
 }
