@@ -3,7 +3,7 @@
 #pragma clang force_cuda_host_device begin
 #include <stdio.h>
 #pragma clang force_cuda_host_device end
-constexpr int BUF_SIZE = 1024;
+constexpr int BUF_SIZE = 32;
 
 //supported activation kernels: relu (0), gelu (1), leaky relu (2), tanh (3)
 
@@ -43,17 +43,20 @@ extern "C"  __global__ void activation(float *x, int* inputType)
     __valigned__ float bufferB[BUF_SIZE];
     __valigned__ float bufferO[BUF_SIZE];
 
-    tops::mdspan bufA(tops::Private, &bufferA, nCols);
-    tops::mdspan bufB(tops::Private, &bufferB, nCols);
-    tops::mdspan bufO(tops::Private, &bufferO, nCols);
+    int size = nRols * nCols;
+    int bufsize = BUF_SIZE;
+    if (bufsize > size) {bufsize=size;}
 
+    tops::mdspan bufA(tops::Private, &bufferA, bufsize);
+    tops::mdspan bufB(tops::Private, &bufferB, bufsize);
+    tops::mdspan bufO(tops::Private, &bufferO, bufsize);
 
-    for (int i=0; i<nRols * nCols; i+=nCols) {
-        tops::mdspan srcA(tops::Global, x+i, nCols);
+    for (int i=0; i<size; i+=bufsize) {
+        tops::mdspan srcA(tops::Global, x+i, bufsize);
         tops::memcpy(ctx, bufA, srcA);
         
         if (type == 0 || type == 2){ //relu and leaky relu
-            for (int j=0; j<nCols; j++){
+            for (int j=0; j<bufsize; j++){
                 if (bufferA[j] > 0) {
                     bufferB[j] = 1.0;
                 } else {
@@ -75,8 +78,12 @@ extern "C"  __global__ void activation(float *x, int* inputType)
 
 
         //copy to results
-        tops::mdspan dst(tops::Global, x+i, nCols);
+        tops::mdspan dst(tops::Global, x+i, bufsize);
         tops::memcpy(ctx, dst, bufO);
+
+        if (i + bufsize > size) {
+            bufsize = size - i;
+        }
     }
 
 }

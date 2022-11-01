@@ -1,0 +1,49 @@
+#include "tops.h"
+#pragma clang force_cuda_host_device begin
+#include <stdio.h>
+#pragma clang force_cuda_host_device end
+
+extern "C" __global__ void element(float *matA, float* matB, float *to, int size, int type)
+{
+  tops_dte_ctx_t ctx;
+  tops::dte_scope s(ctx);
+
+  __valigned__ float bufferA[32];
+  __valigned__ float bufferB[32];
+
+  //printf("size: %d, type: %d", size, type);
+
+  int bufsize = 32;
+  if (bufsize > size) {bufsize=size;}
+
+  tops::mdspan bufA(tops::Private, (float*)&bufferA, bufsize);
+  tops::mdspan bufB(tops::Private, (float*)&bufferB, bufsize);
+
+  for (unsigned i=0; i<size; i+=bufsize) {
+    tops::mdspan srcA(tops::Global, matA + i, bufsize);
+    tops::mdspan srcB(tops::Global, matB + i, bufsize);
+
+    tops::memcpy(ctx, bufA, srcA);
+    tops::memcpy(ctx, bufB, srcB);
+
+    const auto &v1 = tops::vload<vfloat>(bufferA);
+    const auto &v2 = tops::vload<vfloat>(bufferB);
+
+    if (type == 0) {
+        tops::vstore<vfloat>(v1+v2, bufferB);
+    } else if (type == 1) {
+        tops::vstore<vfloat>(v1-v2, bufferB);
+    } else if (type == 2) {
+        tops::vstore<vfloat>(v1*v2, bufferB);
+    } else if (type == 3) {
+        tops::vstore<vfloat>(v1/v2, bufferB);
+    }
+
+    tops::mdspan dst(tops::Global, to + i, bufsize);
+    tops::memcpy(ctx, dst, bufB);
+    if (i + bufsize > size) {
+      bufsize = size - i;
+    }
+  }
+
+}
