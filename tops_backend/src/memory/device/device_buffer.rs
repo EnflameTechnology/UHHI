@@ -19,7 +19,7 @@ use crate::stream::TopsStream;
 use super::{TopsDeviceSlice, CopyDestination, AsyncCopyDestination};
 
 /// Fixed-size device-side buffer. Provides basic access to device memory.
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 #[repr(C)]
 pub struct TopsDeviceBuffer<T: DeviceCopy> {
     buf: TopsDevicePointer<T>,
