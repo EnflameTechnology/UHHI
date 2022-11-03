@@ -317,8 +317,8 @@ fn network_test() -> DeviceResult<()> {
 
     match out_ref {
         Some(out) => {
-            let mut conv_out_host = vec![0.0f32; out.len()];
-            out.copy_to(&mut conv_out_host[0..out.len()])?;
+            let mut out_host = vec![0.0f32; out.len()];
+            out.copy_to(&mut out_host[0..out.len()])?;
             match out_size {
                 Some(sz) => {
                     let W = sz.0;
@@ -326,7 +326,7 @@ fn network_test() -> DeviceResult<()> {
                     println!("\n\nResults of forward pass******************");
                     for x in 0..H {
                         for y in 0..W {
-                            print!("{:.5} ", conv_out_host[x * W + y]);
+                            print!("{:.5} ", out_host[x * W + y]);
                         }
                         println!("{}", "");
                     }
