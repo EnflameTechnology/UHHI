@@ -30,7 +30,7 @@ cargo run --bin tops_backend
 
 # Sample code
 
-```Rust
+``` rust
 //Example of UHAL for neural network forward pass (on NV GPU & Enflame GCU)
 use cust_core::DeviceCopy;
 use std::collections::HashMap;
