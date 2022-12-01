@@ -26,19 +26,28 @@ __device__ float activation_kernel(float x, int act)
     return 0;
 }
 
-extern "C"  __global__ void activation(float *x, int N, int act)
+extern "C"  __global__ void activation(float *x, unsigned int rows, unsigned int cols, int act)
 {
 
-    int ROW = blockIdx.y*blockDim.y+threadIdx.y;
-    int COL = blockIdx.x*blockDim.x+threadIdx.x;
+    unsigned int idx = blockIdx.x * blockDim.x + threadIdx.x;
+    unsigned int idy = blockIdx.y * blockDim.y + threadIdx.y;
 
-    // float tmpSum = 0;
-
-    if (ROW < N && COL < N) {
-        // each thread computes one element of the block sub-matrix
-        int i = ROW * N + COL;
-        if(i < N * N) x[i] = activation_kernel(x[i], act);
+    if (idx < cols && idy < rows) 
+    {
+        unsigned int pos = idy * cols + idx;
+        x[pos] = activation_kernel(x[pos], act);
     }
+
+    // int ROW = blockIdx.y*blockDim.y+threadIdx.y;
+    // int COL = blockIdx.x*blockDim.x+threadIdx.x;
+
+    // // float tmpSum = 0;
+
+    // if (ROW < N && COL < N) {
+    //     // each thread computes one element of the block sub-matrix
+    //     int i = ROW * N + COL;
+    //     if(i < N * N) x[i] = activation_kernel(x[i], act);
+    // }
 
     // int i = (blockIdx.x + blockIdx.y*gridDim.x) * blockDim.x + threadIdx.x;
     

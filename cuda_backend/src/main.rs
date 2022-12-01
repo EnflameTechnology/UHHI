@@ -236,7 +236,7 @@ fn main() -> DeviceResult<()> {
             println!("\nLaunched network_test successfully.");
         }
         Err(e) => {
-            println!("\nLaunche network_test failed.");
+            println!("\nLaunch network_test failed.");
             return Err(e);
         }
     }

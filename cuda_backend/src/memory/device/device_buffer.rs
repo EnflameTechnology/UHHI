@@ -19,7 +19,7 @@ use crate::stream::CuStream;
 use super::{AsyncCopyDestination, CopyDestination, CuDeviceSlice};
 
 /// Fixed-size device-side buffer. Provides basic access to device memory.
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 #[repr(C)]
 pub struct CuDeviceBuffer<T: DeviceCopy> {
     buf: CuDevicePointer<T>,
