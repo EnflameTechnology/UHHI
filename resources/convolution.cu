@@ -7,7 +7,7 @@ __device__ void mul_vectors(float *a, float *b, float *c, int N)
 	for(int id=0; id < N; id++) c[id] = a[id] * b[id];
 }
 
-extern "C" __global__ void convolution(float* lhs, float* kernel, float* out, int W, int H, int W_k, int H_k) 
+extern "C" __global__ void convolution(float* lhs, float* kernel, float* out, unsigned int W, unsigned int H, unsigned int W_k, unsigned int H_k) 
 {
   int stride = 1;
   int nW = W - W_k + 1;

@@ -23,7 +23,11 @@ struct Layer<'a, T: DeviceCopy> {
     output_size : (usize, usize),
     out_ref : Option<&'a CuDeviceBuffer<T>>
 }
-
+pub fn get_block_grid(shape1:usize, shape0:usize) -> (usize, usize, usize) {
+    let grid_a : usize = (shape1 + 16 - 1) / 16;
+    let grid_b : usize = (shape0 + 16 - 1) / 16;
+    return (16, grid_a, grid_b)
+}
 fn load_module<'a>(name : &str) -> DeviceResult<CuModule>{
     let ptx = format!("./resources/{}.ptx",name).to_string();
     CuModule::from_file(&ptx)
@@ -72,10 +76,12 @@ fn network_test() -> DeviceResult<()> {
             match load_module(function_name) {
                 Ok(module) => {
                     let kernel = module.get_function(&function_name)?;
+                    let (block_size, grid_a, grid_b) = get_block_grid(layer.input_size.1, layer.input_size.0);
                     unsafe {
-                        let result = launch!(kernel<<<(1, 1, 1), (layer.input_size.0 as u32, layer.input_size.1 as u32, 1), 0, stream>>>(
+                        let result = launch!(kernel<<<(grid_a as u32, grid_b as u32), (block_size as u32, block_size as u32), 0, stream>>>(
                             matA.as_device_ptr(),
-                            layer.output_size.0,
+                            layer.input_size.0 as u32,
+                            layer.input_size.1 as u32,
                             map_act[layer.op]
                         ));
                         result?;
@@ -89,12 +95,15 @@ fn network_test() -> DeviceResult<()> {
             match load_module(layer.op) {
                 Ok(module) => {
                     let kernel = module.get_function(&layer.op)?;
+                    let (block_size, grid_a, grid_b) = get_block_grid(layer.input_size.1, layer.input_size.0);
                     unsafe {
-                        let result = launch!(kernel<<<(1, 1, 1), (layer.input_size.0 as u32, layer.input_size.1 as u32, 1), 0, stream>>>(
+                        let result = launch!(kernel<<<(grid_a as u32, grid_b as u32), (block_size as u32, block_size as u32), 0, stream>>>(
                             matA.as_device_ptr(),
                             matB.as_device_ptr(),
                             matOut.as_device_ptr(),
-                            layer.output_size.0
+                            layer.input_size.0 as u32,
+                            layer.input_size.1 as u32,
+                            layer.output_size.1 as u32
                         ));
                         result?;
                     }
