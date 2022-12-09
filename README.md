@@ -11,7 +11,7 @@ Unified heterogeneous hardware interface for deep learning, that enables you to 
 # Usage
 ## For cuda backend:
 
-1) Make sure you have NVIDIA card, driver and cuda 11.3 installed
+1) Make sure you have NVIDIA card, driver and CUDA 11.3 installed
 
 2) Run the following command to build & run cuda backend under the main folder
 ```
@@ -20,7 +20,7 @@ cargo run --bin cuda_backend
 ######Tested under CUDA 11.3 and NVIDIA 2080Ti.
 
 ## For tops backend:
-1) Make sure you have Enflame T20 card, driver installed
+1) Make sure you have Enflame T20 card and corresponding driver installed
 2) Download TopsAPI library (libtops_api64.so) to "lib" directory under the main folder
 3) Run the following command to build & run tops backend under the main folder
 ```
@@ -35,7 +35,7 @@ cargo run --bin tops_backend
 use cust_core::DeviceCopy;
 use std::collections::HashMap;
 
-//Import UHAL for common computing interfaces
+//Import UHAL for common computing interface
 use uhal::launch;
 use uhal::error::{DeviceResult};
 use uhal::{DriverLibraryTrait};
@@ -74,10 +74,10 @@ use cuda::CuApi as Api;
 //Load kernel module
 fn load_module<'a>(name : &str) -> DeviceResult<Module>{
     #[cfg(feature = "tops_backend")]
-    let ptx = format!("{}/resources/{}.o", env!("CARGO_MANIFEST_DIR"), name).to_string();
+    let ptx = format!("{}/kernels/{}.o", env!("CARGO_MANIFEST_DIR"), name).to_string();
 
     #[cfg(feature = "cuda_backend")]
-    let ptx = format!("{}/resources/{}.ptx", env!("CARGO_MANIFEST_DIR"), name).to_string();
+    let ptx = format!("{}/kernels/{}.ptx", env!("CARGO_MANIFEST_DIR"), name).to_string();
 
     Module::from_file(&ptx)
 }
@@ -303,7 +303,7 @@ fn main() -> DeviceResult<()> {
             println!("\nLaunched network_test successfully.");
         }
         Err(e) => {
-            println!("\nLaunche network_test failed.");
+            println!("\nLaunch network_test failed.");
             return Err(e);
         }
     }
