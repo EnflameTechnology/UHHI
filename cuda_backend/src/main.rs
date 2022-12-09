@@ -29,7 +29,7 @@ pub fn get_block_grid(shape1:usize, shape0:usize) -> (usize, usize, usize) {
     return (16, grid_a, grid_b)
 }
 fn load_module<'a>(name : &str) -> DeviceResult<CuModule>{
-    let ptx = format!("./resources/{}.ptx",name).to_string();
+    let ptx = format!("./kernels/{}.ptx",name).to_string();
     CuModule::from_file(&ptx)
 }
 

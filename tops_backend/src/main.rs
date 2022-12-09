@@ -33,7 +33,7 @@ fn legacy() -> DeviceResult<()>{
         driv::topsDeviceGet(&mut device, 0);
         driv::topsSetDevice(device as c_int);
     }
-    let ptx = "./resources/copy_d2c.o".to_string();
+    let ptx = "./kernels/copy_d2c.o".to_string();
 
     let mut bytes = to_bytes(ptx);
     if !bytes.contains(&0) {
@@ -179,7 +179,7 @@ fn legacy() -> DeviceResult<()>{
 }
 
 fn load_module<'a>(name : &str) -> DeviceResult<TopsModule>{
-    let ptx = format!("./resources/{}.o",name).to_string();
+    let ptx = format!("./kernels/{}.o",name).to_string();
     TopsModule::from_file(&ptx)
 }
 struct Layer<'a, T: DeviceCopy> {
