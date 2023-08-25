@@ -45,7 +45,7 @@ impl ToResult for topsError_t {
             topsError_t::topsErrorUnmapFailed => Err(DeviceError::UnmapFailed),
             topsError_t::topsErrorArrayIsMapped => Err(DeviceError::ArrayIsMapped),
             topsError_t::topsErrorAlreadyMapped => Err(DeviceError::AlreadyMapped),
-            topsError_t::topsErrorNoBinaryForGpu => Err(DeviceError::NoBinaryForGpu),
+            topsError_t::topsErrorNoBinaryForGcu => Err(DeviceError::NoBinaryForGpu),
             topsError_t::topsErrorAlreadyAcquired => Err(DeviceError::AlreadyAcquired),
             topsError_t::topsErrorNotMapped => Err(DeviceError::NotMapped),
             topsError_t::topsErrorNotMappedAsArray => Err(DeviceError::NotMappedAsArray),

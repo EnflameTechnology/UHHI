@@ -58,6 +58,12 @@ impl DeviceTrait for TopsDevice {
         }
     }
 
+    fn select_device(ordinal: u32) -> DeviceResult<()>{
+        unsafe {
+            driv::topsSetDevice(ordinal as i32).to_result()
+        }
+    }
+
     /// Return an iterator over all devices.
     fn devices() -> DeviceResult<Self::DevicesT>{
         TopsDevice::num_devices().map(|num_devices| Self::DevicesT {

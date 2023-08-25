@@ -583,14 +583,14 @@ mod test_device_box {
 
     #[test]
     fn test_allocate_and_free_device_box() {
-        let _context = crate::CuApi::quick_init().unwrap();
+        let _device = crate::CuApi::quick_init(0).unwrap();
         let x = CuDeviceBox::new(&5u64).unwrap();
         drop(x);
     }
 
     #[test]
     fn test_device_box_allocates_for_non_zst() {
-        let _context = crate::CuApi::quick_init().unwrap();
+        let _device = crate::CuApi::quick_init(0).unwrap();
         let x = CuDeviceBox::new(&5u64).unwrap();
         let ptr = CuDeviceBox::into_device(x);
         assert!(!ptr.is_null());
@@ -599,7 +599,7 @@ mod test_device_box {
 
     #[test]
     fn test_device_box_doesnt_allocate_for_zero_sized_type() {
-        let _context = crate::CuApi::quick_init().unwrap();
+        let _device = crate::CuApi::quick_init(0).unwrap();
         let x = CuDeviceBox::new(&ZeroSizedType).unwrap();
         let ptr = CuDeviceBox::into_device(x);
         assert!(ptr.is_null());
@@ -608,7 +608,7 @@ mod test_device_box {
 
     #[test]
     fn test_into_from_device() {
-        let _context = crate::CuApi::quick_init().unwrap();
+        let _device = crate::CuApi::quick_init(0).unwrap();
         let x = CuDeviceBox::new(&5u64).unwrap();
         let ptr = CuDeviceBox::into_device(x);
         let _ = unsafe { CuDeviceBox::from_device(ptr) };
@@ -616,7 +616,7 @@ mod test_device_box {
 
     #[test]
     fn test_copy_host_to_device() {
-        let _context = crate::CuApi::quick_init().unwrap();
+        let _device = crate::CuApi::quick_init(0).unwrap();
         let y = 5u64;
         let mut x = CuDeviceBox::new(&0u64).unwrap();
         x.copy_from(&y).unwrap();
@@ -627,7 +627,7 @@ mod test_device_box {
 
     #[test]
     fn test_copy_device_to_host() {
-        let _context = crate::CuApi::quick_init().unwrap();
+        let _device = crate::CuApi::quick_init(0).unwrap();
         let x = CuDeviceBox::new(&5u64).unwrap();
         let mut y = 0u64;
         x.copy_to(&mut y).unwrap();
@@ -636,7 +636,7 @@ mod test_device_box {
 
     #[test]
     fn test_copy_device_to_device() {
-        let _context = crate::CuApi::quick_init().unwrap();
+        let _device = crate::CuApi::quick_init(0).unwrap();
         let x = CuDeviceBox::new(&5u64).unwrap();
         let mut y = CuDeviceBox::new(&0u64).unwrap();
         let mut z = CuDeviceBox::new(&0u64).unwrap();
@@ -650,7 +650,7 @@ mod test_device_box {
 
     #[test]
     fn test_device_pointer_implements_traits_safely() {
-        let _context = crate::CuApi::quick_init().unwrap();
+        let _device = crate::CuApi::quick_init(0).unwrap();
         let x = CuDeviceBox::new(&5u64).unwrap();
         let y = CuDeviceBox::new(&0u64).unwrap();
 

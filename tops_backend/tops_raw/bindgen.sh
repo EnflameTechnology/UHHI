@@ -13,7 +13,7 @@ bindgen \
   --with-derive-hash \
   --with-derive-ord \
   --size_t-is-usize \
-  wrapper.h -- -I/home/guoqing/TopsCC/tops-software-platform/include/tops \
-  -I/home/guoqing/TopsCC/tops-software-platform/include -I/usr/lib/gcc/x86_64-linux-gnu/9/include \
-  -I/home/guoqing/TopsCC/build/llvm-project/llvm/lib/clang/11.0.0/include \
+  wrapper.h -- -I/usr/include/tops \
+  -I/usr/include -I/usr/lib/gcc/x86_64-linux-gnu/9/include \
+  -I/opt/tops/include -I/opt/tops/include/tops \
   > src/tops.rs

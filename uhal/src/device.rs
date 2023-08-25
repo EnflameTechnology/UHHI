@@ -207,6 +207,7 @@ pub trait DeviceTrait {
     /// Ordinal must be in the range `0..num_devices()`. If not, an error will be returned.
     fn get_device(ordinal: u32) -> DeviceResult<Self::DeviceT>;
 
+    fn select_device(ordinal: u32) -> DeviceResult<()>;
     /// Return an iterator over all devices.
     fn devices() -> DeviceResult<Self::DevicesT>;
 

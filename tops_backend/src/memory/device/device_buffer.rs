@@ -1,10 +1,11 @@
 pub use tops_raw as driv;
 use driv::topsStream_t;
-use uhal::memory::{DeviceBufferTrait, MemoryTrait, DevicePointerTrait};
+use uhal::memory::{DeviceBufferTrait, MemoryTrait, DevicePointerTrait, DeviceBufferTraitEx};
 use uhal::error::{DeviceResult, DropResult};
 
 pub use cust_core::_hidden::{DeviceCopy};
 use uhal::stream::StreamTrait;
+use std::any::Any;
 use std::ops::{Deref, DerefMut};
 use crate::error::ToResult;
 #[cfg(feature = "bytemuck")]
@@ -26,6 +27,8 @@ pub struct TopsDeviceBuffer<T: DeviceCopy> {
     len: usize,
 }
 
+static mut GCU_MEM_USED : usize = 0;
+static mut GCU_MEM_ALLOCATED : usize = 0;
 
 unsafe impl<T: Send + DeviceCopy> Send for TopsDeviceBuffer<T> {}
 unsafe impl<T: Sync + DeviceCopy> Sync for TopsDeviceBuffer<T> {}
@@ -63,6 +66,8 @@ impl<T: DeviceCopy> DeviceBufferTrait<T> for TopsDeviceBuffer<T> {
     unsafe fn uninitialized(size: usize) -> DeviceResult<Self::DeviceBufferT>
     {
         let ptr = if size > 0 && size_of::<T>() > 0 {
+            GCU_MEM_USED += size;
+            GCU_MEM_ALLOCATED += size;
             TopsMemory::malloc(size)?
         } else {
             // FIXME (AL): Do we /really/ want to allow creating an invalid buffer?
@@ -214,7 +219,7 @@ impl<T: DeviceCopy> DeviceBufferTrait<T> for TopsDeviceBuffer<T> {
     ///     },
     /// }
     /// ```
-    fn drop(mut dev_buf: Self::DeviceBufferT) -> DropResult<Self::DeviceBufferT>
+    fn drop(mut dev_buf: &mut Self::DeviceBufferT) -> DropResult<Self::DeviceBufferT>
     {
         if dev_buf.buf.is_null() {
             return Ok(());
@@ -227,6 +232,8 @@ impl<T: DeviceCopy> DeviceBufferTrait<T> for TopsDeviceBuffer<T> {
                 match TopsMemory::free(ptr) {
                     Ok(()) => {
                         mem::forget(dev_buf);
+                        GCU_MEM_USED -= capacity;
+                        println!("GCU Memory Actually Used: {} MB, Once Allocated {} MB", GCU_MEM_USED/1024/1024, GCU_MEM_ALLOCATED/1024/1024);
                         Ok(())
                     }
                     Err(e) => Err((e, TopsDeviceBuffer::from_raw_parts(ptr, capacity))),
@@ -308,6 +315,17 @@ impl<T: DeviceCopy> DeviceBufferTrait<T> for TopsDeviceBuffer<T> {
     }
 }
 
+impl DeviceBufferTraitEx for TopsDeviceBuffer<f32> {
+    type DeviceBufferT = TopsDeviceBuffer<f32>;
+    fn from_pointer(pointer: *const f32, size: usize) -> DeviceResult<Self::DeviceBufferT> {
+
+        unsafe {
+            let mut uninit = TopsDeviceBuffer::uninitialized(size)?;
+            uninit.copy_from_pointer(pointer, size)?;
+            Ok(uninit)
+        }
+    }
+}
 #[cfg(feature = "bytemuck")]
 impl<T: DeviceCopy + Zeroable> TopsDeviceBuffer<T> {
     
@@ -492,14 +510,14 @@ mod test_device_buffer {
 
     #[test]
     fn test_from_slice_drop() {
-        let _context = crate::TopsApi::quick_init().unwrap();
+        let _device = crate::TopsApi::quick_init(0).unwrap();
         let buf = TopsDeviceBuffer::from_slice(&[0u64, 1, 2, 3, 4, 5]).unwrap();
         drop(buf);
     }
 
     #[test]
     fn test_copy_to_from_device() {
-        let _context = crate::TopsApi::quick_init().unwrap();
+        let _device = crate::TopsApi::quick_init(0).unwrap();
         let start = [0u64, 1, 2, 3, 4, 5];
         let mut end = [0u64, 0, 0, 0, 0, 0];
         let buf = TopsDeviceBuffer::from_slice(&start).unwrap();
@@ -509,7 +527,7 @@ mod test_device_buffer {
 
     #[test]
     fn test_async_copy_to_from_device() {
-        let _context = crate::TopsApi::quick_init().unwrap();
+        let _device = crate::TopsApi::quick_init(0).unwrap();
         let stream = TopsStream::new(StreamFlags::NON_BLOCKING, None).unwrap();
         let start = [0u64, 1, 2, 3, 4, 5];
         let mut end = [0u64, 0, 0, 0, 0, 0];
@@ -524,7 +542,7 @@ mod test_device_buffer {
     #[test]
     #[should_panic]
     fn test_copy_to_d2h_wrong_size() {
-        let _context = crate::TopsApi::quick_init().unwrap();
+        let _device = crate::TopsApi::quick_init(0).unwrap();
         let buf = TopsDeviceBuffer::from_slice(&[0u64, 1, 2, 3, 4, 5]).unwrap();
         let mut end = [0u64, 1, 2, 3, 4];
         let _ = buf.copy_to(&mut end);
@@ -533,7 +551,7 @@ mod test_device_buffer {
     #[test]
     #[should_panic]
     fn test_async_copy_to_d2h_wrong_size() {
-        let _context = crate::TopsApi::quick_init().unwrap();
+        let _device = crate::TopsApi::quick_init(0).unwrap();
         let stream = TopsStream::new(StreamFlags::NON_BLOCKING, None).unwrap();
         unsafe {
             let buf = TopsDeviceBuffer::from_slice_async(&[0u64, 1, 2, 3, 4, 5], &stream).unwrap();
@@ -545,7 +563,7 @@ mod test_device_buffer {
     #[test]
     #[should_panic]
     fn test_copy_from_h2d_wrong_size() {
-        let _context = crate::TopsApi::quick_init().unwrap();
+        let _device = crate::TopsApi::quick_init(0).unwrap();
         let start = [0u64, 1, 2, 3, 4];
         let mut buf = TopsDeviceBuffer::from_slice(&[0u64, 1, 2, 3, 4, 5]).unwrap();
         let _ = buf.copy_from(&start);
@@ -554,7 +572,7 @@ mod test_device_buffer {
     #[test]
     #[should_panic]
     fn test_async_copy_from_h2d_wrong_size() {
-        let _context = crate::TopsApi::quick_init().unwrap();
+        let _device = crate::TopsApi::quick_init(0).unwrap();
         let stream = TopsStream::new(StreamFlags::NON_BLOCKING, None).unwrap();
         let start = [0u64, 1, 2, 3, 4];
         unsafe {
@@ -566,7 +584,7 @@ mod test_device_buffer {
     #[test]
     #[should_panic]
     fn test_copy_to_d2d_wrong_size() {
-        let _context = crate::TopsApi::quick_init().unwrap();
+        let _device = crate::TopsApi::quick_init(0).unwrap();
         let buf = TopsDeviceBuffer::from_slice(&[0u64, 1, 2, 3, 4, 5]).unwrap();
         let mut end = TopsDeviceBuffer::from_slice(&[0u64, 1, 2, 3, 4]).unwrap();
         let _ = buf.copy_to(&mut end);
@@ -575,7 +593,7 @@ mod test_device_buffer {
     #[test]
     #[should_panic]
     fn test_async_copy_to_d2d_wrong_size() {
-        let _context = crate::TopsApi::quick_init().unwrap();
+        let _device = crate::TopsApi::quick_init(0).unwrap();
         let stream = TopsStream::new(StreamFlags::NON_BLOCKING, None).unwrap();
         unsafe {
             let buf = TopsDeviceBuffer::from_slice_async(&[0u64, 1, 2, 3, 4, 5], &stream).unwrap();
@@ -587,7 +605,7 @@ mod test_device_buffer {
     #[test]
     #[should_panic]
     fn test_copy_from_d2d_wrong_size() {
-        let _context = crate::TopsApi::quick_init().unwrap();
+        let _device = crate::TopsApi::quick_init(0).unwrap();
         let mut buf = TopsDeviceBuffer::from_slice(&[0u64, 1, 2, 3, 4, 5]).unwrap();
         let start = TopsDeviceBuffer::from_slice(&[0u64, 1, 2, 3, 4]).unwrap();
         let _ = buf.copy_from(&start);
@@ -596,7 +614,7 @@ mod test_device_buffer {
     #[test]
     #[should_panic]
     fn test_async_copy_from_d2d_wrong_size() {
-        let _context = crate::TopsApi::quick_init().unwrap();
+        let _device = crate::TopsApi::quick_init(0).unwrap();
         let stream = TopsStream::new(StreamFlags::NON_BLOCKING, None).unwrap();
         unsafe {
             let mut buf = TopsDeviceBuffer::from_slice_async(&[0u64, 1, 2, 3, 4, 5], &stream).unwrap();

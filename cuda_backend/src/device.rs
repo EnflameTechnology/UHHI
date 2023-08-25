@@ -124,6 +124,10 @@ impl DeviceTrait for CuDevice {
     fn as_raw(&self) -> Self::RawDeviceT {
         self.0
     }
+
+    fn select_device(ordinal: u32) -> DeviceResult<()> {
+        Ok(())
+    }
 }
 
 #[cfg(test)]

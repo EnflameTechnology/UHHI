@@ -63,10 +63,10 @@ impl<'a> StreamTrait<'a> for TopsStream {
             let mut stream = Self::StreamT {
                 0: ptr::null_mut(),
             };
-            driv::topsStreamCreateWithPriority(
+            driv::topsStreamCreate(
                 &mut stream.0 as *mut Self::RawStreamT,
-                flags.bits(),
-                priority.unwrap_or(0),
+                // flags.bits(),
+                // priority.unwrap_or(0),
             )
             .to_result()?;
             Ok(stream)
@@ -75,11 +75,12 @@ impl<'a> StreamTrait<'a> for TopsStream {
 
     /// Return the flags which were used to create this stream.
     fn get_flags(&self) -> DeviceResult<StreamFlags>{
-        unsafe {
-            let mut bits = 0u32;
-            driv::topsStreamGetFlags(self.0, &mut bits as *mut u32).to_result()?;
-            Ok(StreamFlags::from_bits_truncate(bits))
-        }
+        // unsafe {
+        //     let mut bits = 0u32;
+        //     driv::topsStreamGetFlags(self.0, &mut bits as *mut u32).to_result()?;
+        //     Ok(StreamFlags::from_bits_truncate(bits))
+        // }
+        Ok(StreamFlags::DEFAULT)
     }
 
     /// Return the priority of this stream.
@@ -88,11 +89,12 @@ impl<'a> StreamTrait<'a> for TopsStream {
     /// If the stream was created with a priority outside the valid range, returns the clamped
     /// priority.
     fn get_priority(&self) -> DeviceResult<i32>{
-        unsafe {
-            let mut priority = 0i32;
-            driv::topsStreamGetPriority(self.0, &mut priority as *mut i32).to_result()?;
-            Ok(priority)
-        }
+        // unsafe {
+        //     let mut priority = 0i32;
+        //     driv::topsStreamGetPriority(self.0, &mut priority as *mut i32).to_result()?;
+        //     Ok(priority)
+        // }
+        Ok(0)
     }
 
     /// Add a callback to a stream.
@@ -197,6 +199,7 @@ impl<'a> StreamTrait<'a> for TopsStream {
             match driv::topsStreamDestroy(inner).to_result() {
                 Ok(()) => {
                     mem::forget(stream);
+                    println!("Stream destroy!");
                     Ok(())
                 }
                 Err(e) => Err((e, Self::StreamT { 0:inner })),

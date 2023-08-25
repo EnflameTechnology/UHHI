@@ -56,17 +56,17 @@
 
 // pub use crate::uhal::*;
 
-use context::TopsContext;
+// use context::TopsContext;
 use device::TopsDevice;
 // #![cfg_attr(docsrs, feature(doc_cfg))]
 pub use tops_raw as driv;
 pub mod device;
 pub mod error;
 pub mod event;
-pub mod external;
+// pub mod external;
 pub mod function;
 // WIP
-pub mod context;
+// pub mod context;
 #[allow(warnings)]
 pub mod memory;
 pub mod module;
@@ -77,7 +77,7 @@ use uhal::device::DeviceTrait;
 
 use uhal::{Flags, DriverLibraryTrait};
 use uhal::error::{DeviceResult};
-use uhal::context::{ContextFlags, ContextTrait};
+// use uhal::context::{ContextFlags, ContextTrait};
 use error::ToResult;
 
 /// Struct representing the API version number.
@@ -86,7 +86,8 @@ pub struct TopsApi(i32);
 
 
 impl DriverLibraryTrait for TopsApi {
-    type ContextT = TopsContext;
+    // type ContextT = TopsContext;
+    type ContextT = TopsDevice; //No context in GCU runtime 3.0
     type ApiVersionT = TopsApi;
     /// Initialize the Driver API.
     ///
@@ -107,13 +108,17 @@ impl DriverLibraryTrait for TopsApi {
     /// complex needs (multiple devices, custom flags, etc.) should use `init` and create their own
     /// context.
     #[must_use = "The Context must be kept alive or errors will be issued for any function that is run"]
-    fn quick_init() -> DeviceResult<Self::ContextT>
+    fn quick_init(device_id: u32) -> DeviceResult<Self::ContextT>
     {
         TopsApi::init(Flags::empty())?;
-        let device = TopsDevice::get_device(0)?;
-        let ctx = TopsContext::new(device)?;
+        let num_devices = TopsDevice::num_devices().unwrap();
+        if device_id < num_devices {
+            TopsDevice::select_device(device_id);
+        }
+        TopsDevice::get_device(device_id)
+        // let ctx = TopsContext::new(device)?;
         // ctx.set_flags(ContextFlags::SCHED_AUTO)?; //TODO 
-        Ok(ctx)
+        // Ok(ctx)
     } 
 
     /// Returns the latest version supported by the driver.

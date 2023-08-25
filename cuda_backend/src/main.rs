@@ -34,7 +34,7 @@ fn load_module<'a>(name : &str) -> DeviceResult<CuModule>{
 }
 
 fn network_test() -> DeviceResult<()> {
-    let _ctx = cuda::CuApi::quick_init()?;
+    let _device = cuda::CuApi::quick_init(0)?;
     let stream = CuStream::new(StreamFlags::NON_BLOCKING, None)?;
 
     const N : usize = 16;
@@ -187,7 +187,7 @@ fn network_test() -> DeviceResult<()> {
 fn test() -> DeviceResult<()> {
     println!("\n\n\n******************\ninfo: start uhal cuda_backend test!\n");
     // Set up the context, load the module, and create a stream to run kernels in.
-    let _ctx = cuda::CuApi::quick_init()?;
+    let _device = cuda::CuApi::quick_init(0)?;
     let stream = CuStream::new(StreamFlags::NON_BLOCKING, None)?;
 
     // matmul of 3 x 3 and 3 x 3  -> 3 x 3

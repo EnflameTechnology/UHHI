@@ -87,6 +87,7 @@ bitflags! {
 
 pub trait DriverLibraryTrait {
     type ContextT;
+    // type DeviceT;
     type ApiVersionT;
     /// Initialize the Driver API.
     ///
@@ -105,7 +106,7 @@ pub trait DriverLibraryTrait {
     /// complex needs (multiple devices, custom flags, etc.) should use `init` and create their own
     /// context.
     #[must_use = "The Context must be kept alive or errors will be issued for any function that is run"]
-    fn quick_init() -> DeviceResult<Self::ContextT>;
+    fn quick_init(device_id: u32) -> DeviceResult<Self::ContextT>;
 
     /// Returns the latest version supported by the driver.
     fn get_api_version(self) -> DeviceResult<Self::ApiVersionT>;

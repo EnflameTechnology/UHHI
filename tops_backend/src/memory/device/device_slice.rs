@@ -606,7 +606,7 @@ impl<T: DeviceCopy, I: AsRef<[T]> + AsMut<[T]> + ?Sized> CopyDestination<I> for 
                 //Memcpy in tops is different from CUDA 
                 //Use HostAlloc function in tops to create a buffer for data transfer
                 let mut ptr = std::ptr::null_mut();
-                driv::topsHostAlloc(&mut ptr as *mut *mut c_void, size, 0);
+                driv::topsHostMalloc(&mut ptr as *mut *mut c_void, size, 0);
                 std::ptr::copy(val.as_ptr() as *mut c_void, ptr, size);
                 driv::topsMemcpyHtoD(self.ptr.as_raw(), ptr as *mut c_void, size)
                     .to_result()?;
@@ -639,6 +639,25 @@ impl<T: DeviceCopy, I: AsRef<[T]> + AsMut<[T]> + ?Sized> CopyDestination<I> for 
     }
 }
 
+impl <T:DeviceCopy> TopsDeviceSlice<T> {
+    pub fn copy_from_pointer(&mut self, pointer: *const f32, length: usize) -> DeviceResult<()> {
+        let size = mem::size_of::<f32>() * length;
+        if size != 0 {
+            unsafe {
+                //Memcpy in tops is different from CUDA 
+                //Use HostAlloc function in tops to create a buffer for data transfer
+                let mut ptr = std::ptr::null_mut();
+                driv::topsHostMalloc(&mut ptr as *mut *mut c_void, size, 0);
+                std::ptr::copy(pointer as *mut c_void, ptr, size);
+                driv::topsMemcpyHtoD(self.ptr.as_raw(), ptr as *mut c_void, size)
+                    .to_result()?;
+                driv::topsFree(ptr);
+
+            }
+        }
+        Ok(())
+    }
+}
 impl<T: DeviceCopy> CopyDestination<TopsDeviceSlice<T>> for TopsDeviceSlice<T> {
     fn copy_from(&mut self, val: &TopsDeviceSlice<T>) -> DeviceResult<()> {
         assert!(

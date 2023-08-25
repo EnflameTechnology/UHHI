@@ -168,7 +168,7 @@ mod test {
 
     #[test]
     fn test_cuda_malloc() {
-        let _context = crate::TopsApi::quick_init().unwrap();
+        let _device = crate::TopsApi::quick_init(0).unwrap();
         unsafe {
             let device_mem = TopsMemory::malloc::<u64>(1).unwrap();
             assert!(!device_mem.is_null());
@@ -178,7 +178,7 @@ mod test {
 
     #[test]
     fn test_cuda_malloc_zero_bytes() {
-        let _context = crate::TopsApi::quick_init().unwrap();
+        let _device = crate::TopsApi::quick_init(0).unwrap();
         unsafe {
             assert_eq!(
                 DeviceError::InvalidMemoryAllocation,
@@ -189,7 +189,7 @@ mod test {
 
     #[test]
     fn test_cuda_malloc_zero_sized() {
-        let _context = crate::TopsApi::quick_init().unwrap();
+        let _device = crate::TopsApi::quick_init(0).unwrap();
         unsafe {
             assert_eq!(
                 DeviceError::InvalidMemoryAllocation,
@@ -200,7 +200,7 @@ mod test {
 
     #[test]
     fn test_cuda_alloc_overflow() {
-        let _context = crate::TopsApi::quick_init().unwrap();
+        let _device = crate::TopsApi::quick_init(0).unwrap();
         unsafe {
             assert_eq!(
                 DeviceError::InvalidMemoryAllocation,
@@ -212,7 +212,7 @@ mod test {
 
     #[test]
     fn test_cuda_free_null() {
-        let _context = crate::TopsApi::quick_init().unwrap();
+        let _device = crate::TopsApi::quick_init(0).unwrap();
         unsafe {
             assert_eq!(
                 DeviceError::InvalidMemoryAllocation,

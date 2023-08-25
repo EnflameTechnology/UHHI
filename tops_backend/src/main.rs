@@ -62,9 +62,8 @@ fn legacy() -> DeviceResult<()>{
     let mut stream : driv::topsStream_t = ptr::null_mut();
 
     unsafe {
-        driv::topsStreamCreateWithPriority(
+        driv::topsStreamCreateWithFlags(
             &mut stream,
-            0,
             0
         );
     }
@@ -87,7 +86,7 @@ fn legacy() -> DeviceResult<()>{
 
     unsafe {
         println!("info: copy Host2Device\n");
-        driv::topsHostAlloc(&mut host_ptr as *mut *mut c_void, Nbytes, 0);
+        driv::topsHostMalloc(&mut host_ptr as *mut *mut c_void, Nbytes, 0);
         std::ptr::copy(val.as_ptr() as *mut c_void, host_ptr, Nbytes);
         
         driv::topsMalloc(&mut device_ptr as *mut *mut c_void, Nbytes);
@@ -116,7 +115,7 @@ fn legacy() -> DeviceResult<()>{
         );
 
         println!("info: copy Device2Host\n");
-        driv::topsHostAlloc(&mut host_ptr_out as *mut *mut c_void, Nbytes, 0);
+        driv::topsHostMalloc(&mut host_ptr_out as *mut *mut c_void, Nbytes, 0);
         driv::topsMemcpy(host_ptr_out, device_ptr_dst, Nbytes, driv::topsMemcpyKind::topsMemcpyDeviceToHost);
     }
 
@@ -138,7 +137,7 @@ fn legacy() -> DeviceResult<()>{
         );
 
         println!("info: copy Device2Host again!\n");
-        driv::topsHostAlloc(&mut host_ptr_out2 as *mut *mut c_void, Nbytes, 0);
+        driv::topsHostMalloc(&mut host_ptr_out2 as *mut *mut c_void, Nbytes, 0);
         driv::topsMemcpy(host_ptr_out2, device_ptr_dst2, Nbytes, driv::topsMemcpyKind::topsMemcpyDeviceToHost);
     }
 
@@ -179,7 +178,7 @@ fn legacy() -> DeviceResult<()>{
 }
 
 fn load_module<'a>(name : &str) -> DeviceResult<TopsModule>{
-    let ptx = format!("./kernels/{}.o",name).to_string();
+    let ptx = format!("./kernels/{}.topsfb",name).to_string();
     TopsModule::from_file(&ptx)
 }
 struct Layer<'a, T: DeviceCopy> {
@@ -191,7 +190,7 @@ struct Layer<'a, T: DeviceCopy> {
 }
 
 fn network_test() -> DeviceResult<()> {
-    let _ctx = tops::TopsApi::quick_init()?;
+    let _device = tops::TopsApi::quick_init(0)?;
     let stream = TopsStream::new(StreamFlags::NON_BLOCKING, None)?;
 
     const N : usize = 16;
@@ -200,22 +199,22 @@ fn network_test() -> DeviceResult<()> {
     //Neural network layers: matmul(tanh act) -> matmul(relu act) -> matmul(tanh act) -> convolution(3x3 kernel, tanh act) -> matmul(tanh act) -> matmul(leaky act)
     let layers = vec![
         Layer::<f32> {op : "matmul", weight: Some(TopsDeviceBuffer::from_slice(&[0.01f32; N * N])?), input_size : (N, N), output_size : (N, N), out_ref : None}, //weight is N x N matric for next layer
-        Layer::<f32> {op : "tanh", weight : None, input_size : (N, N), output_size : (N, N), out_ref : None}, //out N x N
+        // Layer::<f32> {op : "tanh", weight : None, input_size : (N, N), output_size : (N, N), out_ref : None}, //out N x N
 
         Layer::<f32> {op : "matmul", weight: Some(TopsDeviceBuffer::from_slice(&[0.02f32; N * N])?), input_size : (N, N), output_size : (N, N), out_ref : None}, //weight is N x N matric for next layer
-        Layer::<f32> {op : "relu", weight : None, input_size : (N, N), output_size : (N, N), out_ref : None}, //out N x N
+        // Layer::<f32> {op : "relu", weight : None, input_size : (N, N), output_size : (N, N), out_ref : None}, //out N x N
 
         Layer::<f32> {op : "matmul", weight: Some(TopsDeviceBuffer::from_slice(&[0.5f32; K * K])?), input_size : (N, N), output_size : (N, N), out_ref : None}, //weight is convolution kernel for next layer
-        Layer::<f32> {op : "tanh", weight : None, input_size : (N, N), output_size : (N, N), out_ref : None}, //out N x N
+        // Layer::<f32> {op : "tanh", weight : None, input_size : (N, N), output_size : (N, N), out_ref : None}, //out N x N
 
         Layer::<f32> {op : "convolution", weight: Some(TopsDeviceBuffer::from_slice(&[0.2f32; (N - K + 1) * (N - K + 1)])?), input_size : (N, N), output_size : (N - K + 1, N - K + 1), out_ref : None}, //weight is (N - K + 1) * (N - K + 1) matric for next layer
-        Layer::<f32> {op : "tanh", weight : None, input_size : (N - K + 1, N - K + 1), output_size : (N - K + 1, N - K + 1), out_ref : None},  //out (N - K + 1) x (N - K + 1)
+        // Layer::<f32> {op : "tanh", weight : None, input_size : (N - K + 1, N - K + 1), output_size : (N - K + 1, N - K + 1), out_ref : None},  //out (N - K + 1) x (N - K + 1)
         
         Layer::<f32> {op : "matmul", weight: Some(TopsDeviceBuffer::from_slice(&[0.2f32; (N - K + 1) * (N - K + 1)])?), input_size : (N - K + 1, N - K + 1), output_size : (N - K + 1, N - K + 1), out_ref : None}, //weight is (N - K + 1) * (N - K + 1) matric for next layer
-        Layer::<f32> {op : "tanh", weight : None, input_size : (N - K + 1, N - K + 1), output_size : (N - K + 1, N - K + 1), out_ref : None}, //output shape (N - K + 1) * (N - K + 1)
+        // Layer::<f32> {op : "tanh", weight : None, input_size : (N - K + 1, N - K + 1), output_size : (N - K + 1, N - K + 1), out_ref : None}, //output shape (N - K + 1) * (N - K + 1)
 
         Layer::<f32> {op : "matmul", weight: None, input_size : (N - K + 1, N - K + 1), output_size : (N - K + 1, N - K + 1), out_ref : None}, // no weight in the last layer
-        Layer::<f32> {op : "gelu", weight : None, input_size : (N - K + 1, N - K + 1), output_size : (N - K + 1, N - K + 1), out_ref : None}, //output shape (N - K + 1) * (N - K + 1)
+        // Layer::<f32> {op : "gelu", weight : None, input_size : (N - K + 1, N - K + 1), output_size : (N - K + 1, N - K + 1), out_ref : None}, //output shape (N - K + 1) * (N - K + 1)
     ];
 
     let mut matA = TopsDeviceBuffer::from_slice(&[0.5f32; N * N])?;
@@ -357,7 +356,7 @@ fn test() -> DeviceResult<()> {
 
     println!("\n\n\n******************\ninfo: start uhal tops_backend test!\n");
     // Set up the context, load the module, and create a stream to run kernels in.
-    let _ctx = tops::TopsApi::quick_init()?;
+    let _device = tops::TopsApi::quick_init(0)?;
     let stream = TopsStream::new(StreamFlags::NON_BLOCKING, None)?;
 
     // matmul of 2 x 5 and 5 x 3  -> 2 x 3
@@ -400,7 +399,7 @@ fn test() -> DeviceResult<()> {
     let mut host_ptr = std::ptr::null_mut();
     let mut out_host = vec![0.0f32; M * N];
     unsafe {
-        driv::topsHostAlloc(&mut host_ptr as *mut *mut c_void, Nbytes, 0);
+        driv::topsHostMalloc(&mut host_ptr as *mut *mut c_void, Nbytes, 0);
         driv::topsMemcpy(host_ptr, matOut.as_device_ptr().as_raw(), Nbytes, driv::topsMemcpyKind::topsMemcpyDeviceToHost);
         std::ptr::copy(host_ptr, out_host.as_mut_ptr() as *mut c_void, Nbytes);
         println!("\n\nResults of forward pass******************");

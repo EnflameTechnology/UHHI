@@ -58,8 +58,8 @@ impl<'a> FunctionTrait for TopsFunction<'a> {
     /// This setting does nothing on devices where the size of the L1 cache and shared memory are
     /// fixed.
     fn set_cache_config(&mut self, config: CacheConfig) -> DeviceResult<()>{
-        unsafe { driv::topsFuncSetCacheConfig(self.inner as *mut ::std::os::raw::c_void, transmute(config)).to_result() }
-
+        // unsafe { driv::topsFuncSetCacheConfig(self.inner as *mut ::std::os::raw::c_void, transmute(config)).to_result() }
+        Ok(())
     }
 
     /// Sets the preferred shared memory configuration for this function.
@@ -68,8 +68,8 @@ impl<'a> FunctionTrait for TopsFunction<'a> {
     /// shared memory bank size which is used for subsequent launches of this function. If not set,
     /// the context-wide setting will be used instead.
     fn set_shared_memory_config(&mut self, cfg: SharedMemoryConfig) -> DeviceResult<()>{
-        unsafe { driv::topsFuncSetSharedMemConfig(self.inner as *mut ::std::os::raw::c_void, transmute(cfg)).to_result() }
-
+        // unsafe { driv::topsFuncSetSharedMemConfig(self.inner as *mut ::std::os::raw::c_void, transmute(cfg)).to_result() }
+        Ok(())
     }
 
     /// Retrieves a raw handle to this function.
@@ -110,17 +110,18 @@ impl<'a> FunctionTrait for TopsFunction<'a> {
     ) -> DeviceResult<u32>{
         let total_block_size = block_size.x * block_size.y * block_size.z;
 
-        let mut num_blocks = MaybeUninit::uninit();
-        unsafe {
-            driv::topsOccupancyMaxActiveBlocksPerMultiprocessor(
-                num_blocks.as_mut_ptr(),
-                self.to_raw() as *mut ::std::os::raw::c_void,
-                total_block_size as i32,
-                dynamic_smem_size,
-            )
-            .to_result()?;
-            Ok(num_blocks.assume_init() as u32)
-        }
+        // let mut num_blocks = MaybeUninit::uninit();
+        // unsafe {
+        //     driv::topsOccupancyMaxActiveBlocksPerMultiprocessor(
+        //         num_blocks.as_mut_ptr(),
+        //         self.to_raw() as *mut ::std::os::raw::c_void,
+        //         total_block_size as i32,
+        //         dynamic_smem_size,
+        //     )
+        //     .to_result()?;
+        //     Ok(num_blocks.assume_init() as u32)
+        // }
+        Ok(0)
     }
 
     // TODO(RDambrosio016): Figure out a way to safely wrap a rust closure to pass it to Device for blockSizeToDynamicSMemSize.
@@ -143,24 +144,25 @@ impl<'a> FunctionTrait for TopsFunction<'a> {
         dynamic_smem_size: usize,
         block_size_limit: BlockSize,
     ) -> DeviceResult<(u32, u32)>{
-        let mut min_grid_size = MaybeUninit::uninit();
-        let mut block_size = MaybeUninit::uninit();
+        // let mut min_grid_size = MaybeUninit::uninit();
+        // let mut block_size = MaybeUninit::uninit();
 
-        let total_block_size_limit = block_size_limit.x * block_size_limit.y * block_size_limit.z;
+        // let total_block_size_limit = block_size_limit.x * block_size_limit.y * block_size_limit.z;
 
-        unsafe {
-            driv::topsOccupancyMaxPotentialBlockSize(
-                min_grid_size.as_mut_ptr(),
-                block_size.as_mut_ptr(),
-                self.to_raw() as *mut ::std::os::raw::c_void,
-                dynamic_smem_size,
-                total_block_size_limit as i32,
-            )
-            .to_result()?;
-            Ok((
-                min_grid_size.assume_init() as u32,
-                block_size.assume_init() as u32,
-            ))
-        }
+        // unsafe {
+        //     driv::topsOccupancyMaxPotentialBlockSize(
+        //         min_grid_size.as_mut_ptr(),
+        //         block_size.as_mut_ptr(),
+        //         self.to_raw() as *mut ::std::os::raw::c_void,
+        //         dynamic_smem_size,
+        //         total_block_size_limit as i32,
+        //     )
+        //     .to_result()?;
+        //     Ok((
+        //         min_grid_size.assume_init() as u32,
+        //         block_size.assume_init() as u32,
+        //     ))
+        // }
+        Ok((1,1))
     }
 }

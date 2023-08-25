@@ -213,7 +213,7 @@ impl<T: DeviceCopy> DeviceBufferTrait<T> for CuDeviceBuffer<T> {
     ///     },
     /// }
     /// ```
-    fn drop(mut dev_buf: Self::DeviceBufferT) -> DropResult<Self::DeviceBufferT> {
+    fn drop(mut dev_buf: &mut Self::DeviceBufferT) -> DropResult<Self::DeviceBufferT> {
         if dev_buf.buf.is_null() {
             return Ok(());
         }
@@ -485,14 +485,14 @@ mod test_device_buffer {
 
     #[test]
     fn test_from_slice_drop() {
-        let _context = crate::CuApi::quick_init().unwrap();
+        let _device = crate::CuApi::quick_init(0).unwrap();
         let buf = CuDeviceBuffer::from_slice(&[0u64, 1, 2, 3, 4, 5]).unwrap();
         drop(buf);
     }
 
     #[test]
     fn test_copy_to_from_device() {
-        let _context = crate::CuApi::quick_init().unwrap();
+        let _device = crate::CuApi::quick_init(0).unwrap();
         let start = [0u64, 1, 2, 3, 4, 5];
         let mut end = [0u64, 0, 0, 0, 0, 0];
         let buf = CuDeviceBuffer::from_slice(&start).unwrap();
@@ -502,7 +502,7 @@ mod test_device_buffer {
 
     #[test]
     fn test_async_copy_to_from_device() {
-        let _context = crate::CuApi::quick_init().unwrap();
+        let _device = crate::CuApi::quick_init(0).unwrap();
         let stream = CuStream::new(StreamFlags::NON_BLOCKING, None).unwrap();
         let start = [0u64, 1, 2, 3, 4, 5];
         let mut end = [0u64, 0, 0, 0, 0, 0];
@@ -517,7 +517,7 @@ mod test_device_buffer {
     #[test]
     #[should_panic]
     fn test_copy_to_d2h_wrong_size() {
-        let _context = crate::CuApi::quick_init().unwrap();
+        let _device = crate::CuApi::quick_init(0).unwrap();
         let buf = CuDeviceBuffer::from_slice(&[0u64, 1, 2, 3, 4, 5]).unwrap();
         let mut end = [0u64, 1, 2, 3, 4];
         let _ = buf.copy_to(&mut end);
@@ -526,7 +526,7 @@ mod test_device_buffer {
     #[test]
     #[should_panic]
     fn test_async_copy_to_d2h_wrong_size() {
-        let _context = crate::CuApi::quick_init().unwrap();
+        let _device = crate::CuApi::quick_init(0).unwrap();
         let stream = CuStream::new(StreamFlags::NON_BLOCKING, None).unwrap();
         unsafe {
             let buf = CuDeviceBuffer::from_slice_async(&[0u64, 1, 2, 3, 4, 5], &stream).unwrap();
@@ -538,7 +538,7 @@ mod test_device_buffer {
     #[test]
     #[should_panic]
     fn test_copy_from_h2d_wrong_size() {
-        let _context = crate::CuApi::quick_init().unwrap();
+        let _device = crate::CuApi::quick_init(0).unwrap();
         let start = [0u64, 1, 2, 3, 4];
         let mut buf = CuDeviceBuffer::from_slice(&[0u64, 1, 2, 3, 4, 5]).unwrap();
         let _ = buf.copy_from(&start);
@@ -547,7 +547,7 @@ mod test_device_buffer {
     #[test]
     #[should_panic]
     fn test_async_copy_from_h2d_wrong_size() {
-        let _context = crate::CuApi::quick_init().unwrap();
+        let _device = crate::CuApi::quick_init(0).unwrap();
         let stream = CuStream::new(StreamFlags::NON_BLOCKING, None).unwrap();
         let start = [0u64, 1, 2, 3, 4];
         unsafe {
@@ -560,7 +560,7 @@ mod test_device_buffer {
     #[test]
     #[should_panic]
     fn test_copy_to_d2d_wrong_size() {
-        let _context = crate::CuApi::quick_init().unwrap();
+        let _device = crate::CuApi::quick_init(0).unwrap();
         let buf = CuDeviceBuffer::from_slice(&[0u64, 1, 2, 3, 4, 5]).unwrap();
         let mut end = CuDeviceBuffer::from_slice(&[0u64, 1, 2, 3, 4]).unwrap();
         let _ = buf.copy_to(&mut end);
@@ -569,7 +569,7 @@ mod test_device_buffer {
     #[test]
     #[should_panic]
     fn test_async_copy_to_d2d_wrong_size() {
-        let _context = crate::CuApi::quick_init().unwrap();
+        let _device = crate::CuApi::quick_init(0).unwrap();
         let stream = CuStream::new(StreamFlags::NON_BLOCKING, None).unwrap();
         unsafe {
             let buf = CuDeviceBuffer::from_slice_async(&[0u64, 1, 2, 3, 4, 5], &stream).unwrap();
@@ -581,7 +581,7 @@ mod test_device_buffer {
     #[test]
     #[should_panic]
     fn test_copy_from_d2d_wrong_size() {
-        let _context = crate::CuApi::quick_init().unwrap();
+        let _device = crate::CuApi::quick_init(0).unwrap();
         let mut buf = CuDeviceBuffer::from_slice(&[0u64, 1, 2, 3, 4, 5]).unwrap();
         let start = CuDeviceBuffer::from_slice(&[0u64, 1, 2, 3, 4]).unwrap();
         let _ = buf.copy_from(&start);
@@ -590,7 +590,7 @@ mod test_device_buffer {
     #[test]
     #[should_panic]
     fn test_async_copy_from_d2d_wrong_size() {
-        let _context = crate::CuApi::quick_init().unwrap();
+        let _device = crate::CuApi::quick_init(0).unwrap();
         let stream = CuStream::new(StreamFlags::NON_BLOCKING, None).unwrap();
         unsafe {
             let mut buf =
