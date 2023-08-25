@@ -1,5 +1,5 @@
 use tops_backend as tops;
-use uhal::error::DeviceError;
+
 use uhal::{DriverLibraryTrait};
 use uhal::memory::{DeviceBufferTrait, DevicePointerTrait};
 use uhal::stream::{StreamTrait, StreamFlags};
@@ -14,7 +14,7 @@ use tops_raw as driv;
 use std::ptr;
 use std::os::raw::{c_void, c_int};
 use std::ffi::CString;
-use driv::{topsError_t};
+
 use std::path::Path;
 use uhal::error::{DeviceResult};
 use cust_core::DeviceCopy;
@@ -76,7 +76,7 @@ fn legacy() -> DeviceResult<()>{
     }
     
     const N:usize = 10000;
-    let mut val = vec![0.5f32; N];
+    let val = vec![0.5f32; N];
     const Nbytes:usize = N * 4;
 
     let mut host_ptr = std::ptr::null_mut();
@@ -96,7 +96,7 @@ fn legacy() -> DeviceResult<()>{
         driv::topsMemcpyHtoD(device_ptr, host_ptr as *mut c_void, Nbytes);
     }
 
-    let mut args = Params {a_ : device_ptr, b_: device_ptr_dst, N :  Nbytes};
+    let args = Params {a_ : device_ptr, b_: device_ptr_dst, N :  Nbytes};
     let mut size = std::mem::size_of::<Params>();
     let mut config = vec![0x1 as *const c_void, &args as *const _ as *mut c_void, 0x2 as *const c_void, &mut size as *const _ as *mut c_void, 0x3 as *const c_void];
 
@@ -119,7 +119,7 @@ fn legacy() -> DeviceResult<()>{
         driv::topsMemcpy(host_ptr_out, device_ptr_dst, Nbytes, driv::topsMemcpyKind::topsMemcpyDeviceToHost);
     }
 
-    let mut args = Params {a_ : device_ptr, b_: device_ptr_dst2, N :  Nbytes};
+    let args = Params {a_ : device_ptr, b_: device_ptr_dst2, N :  Nbytes};
     let mut size = std::mem::size_of::<Params>();
     let mut config = vec![0x1 as *const c_void, &args as *const _ as *mut c_void, 0x2 as *const c_void, &mut size as *const _ as *mut c_void, 0x3 as *const c_void];
 
@@ -198,23 +198,23 @@ fn network_test() -> DeviceResult<()> {
 
     //Neural network layers: matmul(tanh act) -> matmul(relu act) -> matmul(tanh act) -> convolution(3x3 kernel, tanh act) -> matmul(tanh act) -> matmul(leaky act)
     let layers = vec![
-        Layer::<f32> {op : "matmul", weight: Some(TopsDeviceBuffer::from_slice(&[0.01f32; N * N])?), input_size : (N, N), output_size : (N, N), out_ref : None}, //weight is N x N matric for next layer
-        // Layer::<f32> {op : "tanh", weight : None, input_size : (N, N), output_size : (N, N), out_ref : None}, //out N x N
+        Layer::<f32> {op : "batch_matmul", weight: Some(TopsDeviceBuffer::from_slice(&[0.01f32; N * N])?), input_size : (N, N), output_size : (N, N), out_ref : None}, //weight is N x N matric for next layer
+        Layer::<f32> {op : "tanh", weight : None, input_size : (N, N), output_size : (N, N), out_ref : None}, //out N x N
 
-        Layer::<f32> {op : "matmul", weight: Some(TopsDeviceBuffer::from_slice(&[0.02f32; N * N])?), input_size : (N, N), output_size : (N, N), out_ref : None}, //weight is N x N matric for next layer
-        // Layer::<f32> {op : "relu", weight : None, input_size : (N, N), output_size : (N, N), out_ref : None}, //out N x N
+        Layer::<f32> {op : "batch_matmul", weight: Some(TopsDeviceBuffer::from_slice(&[0.02f32; N * N])?), input_size : (N, N), output_size : (N, N), out_ref : None}, //weight is N x N matric for next layer
+        Layer::<f32> {op : "relu", weight : None, input_size : (N, N), output_size : (N, N), out_ref : None}, //out N x N
 
-        Layer::<f32> {op : "matmul", weight: Some(TopsDeviceBuffer::from_slice(&[0.5f32; K * K])?), input_size : (N, N), output_size : (N, N), out_ref : None}, //weight is convolution kernel for next layer
-        // Layer::<f32> {op : "tanh", weight : None, input_size : (N, N), output_size : (N, N), out_ref : None}, //out N x N
+        Layer::<f32> {op : "batch_matmul", weight: Some(TopsDeviceBuffer::from_slice(&[0.5f32; K * K])?), input_size : (N, N), output_size : (N, N), out_ref : None}, //weight is convolution kernel for next layer
+        Layer::<f32> {op : "tanh", weight : None, input_size : (N, N), output_size : (N, N), out_ref : None}, //out N x N
 
         Layer::<f32> {op : "convolution", weight: Some(TopsDeviceBuffer::from_slice(&[0.2f32; (N - K + 1) * (N - K + 1)])?), input_size : (N, N), output_size : (N - K + 1, N - K + 1), out_ref : None}, //weight is (N - K + 1) * (N - K + 1) matric for next layer
-        // Layer::<f32> {op : "tanh", weight : None, input_size : (N - K + 1, N - K + 1), output_size : (N - K + 1, N - K + 1), out_ref : None},  //out (N - K + 1) x (N - K + 1)
+        Layer::<f32> {op : "tanh", weight : None, input_size : (N - K + 1, N - K + 1), output_size : (N - K + 1, N - K + 1), out_ref : None},  //out (N - K + 1) x (N - K + 1)
         
-        Layer::<f32> {op : "matmul", weight: Some(TopsDeviceBuffer::from_slice(&[0.2f32; (N - K + 1) * (N - K + 1)])?), input_size : (N - K + 1, N - K + 1), output_size : (N - K + 1, N - K + 1), out_ref : None}, //weight is (N - K + 1) * (N - K + 1) matric for next layer
-        // Layer::<f32> {op : "tanh", weight : None, input_size : (N - K + 1, N - K + 1), output_size : (N - K + 1, N - K + 1), out_ref : None}, //output shape (N - K + 1) * (N - K + 1)
+        Layer::<f32> {op : "batch_matmul", weight: Some(TopsDeviceBuffer::from_slice(&[0.2f32; (N - K + 1) * (N - K + 1)])?), input_size : (N - K + 1, N - K + 1), output_size : (N - K + 1, N - K + 1), out_ref : None}, //weight is (N - K + 1) * (N - K + 1) matric for next layer
+        Layer::<f32> {op : "tanh", weight : None, input_size : (N - K + 1, N - K + 1), output_size : (N - K + 1, N - K + 1), out_ref : None}, //output shape (N - K + 1) * (N - K + 1)
 
-        Layer::<f32> {op : "matmul", weight: None, input_size : (N - K + 1, N - K + 1), output_size : (N - K + 1, N - K + 1), out_ref : None}, // no weight in the last layer
-        // Layer::<f32> {op : "gelu", weight : None, input_size : (N - K + 1, N - K + 1), output_size : (N - K + 1, N - K + 1), out_ref : None}, //output shape (N - K + 1) * (N - K + 1)
+        Layer::<f32> {op : "batch_matmul", weight: None, input_size : (N - K + 1, N - K + 1), output_size : (N - K + 1, N - K + 1), out_ref : None}, // no weight in the last layer
+        Layer::<f32> {op : "gelu", weight : None, input_size : (N - K + 1, N - K + 1), output_size : (N - K + 1, N - K + 1), out_ref : None}, //output shape (N - K + 1) * (N - K + 1)
     ];
 
     let mut matA = TopsDeviceBuffer::from_slice(&[0.5f32; N * N])?;
@@ -227,16 +227,18 @@ fn network_test() -> DeviceResult<()> {
     let mut out_ref : Option<&TopsDeviceBuffer<f32>> = None;
     let mut out_size : Option<(usize, usize)> = None;
     for layer in layers {
+        println!("Processing layer {}", layer.op);
         if ["relu", "gelu", "leaky", "tanh"].contains(&layer.op) {
             let function_name = "activation";
             match load_module(function_name) {
                 Ok(module) => {
                     let kernel = module.get_function(&function_name)?;
+                    let param = TopsDeviceBuffer::from_slice(&[(layer.input_size.0 * layer.input_size.1) as i32, map_act[layer.op] as i32])?;
+
                     unsafe {
                         let result = launch!(kernel<<<(1, 1, 1), (1, 1, 1), 0, stream>>>(
                             matA.as_device_ptr(),
-                            (layer.input_size.0 * layer.input_size.1) as i32,
-                            map_act[layer.op] as i32
+                            param.as_device_ptr(),
                         ));
                         result?;
                     }
@@ -245,12 +247,12 @@ fn network_test() -> DeviceResult<()> {
                 }
                 _ => { println!("Failed to load kernel!"); break;}
             }
-        } else if layer.op == "matmul" {
+        } else if layer.op == "batch_matmul" {
             match load_module(layer.op) {
                 Ok(module) => {
                     let kernel = module.get_function(&layer.op)?;
-                    let mut inputShapeA = TopsDeviceBuffer::from_slice(&[layer.input_size.0 as i32, layer.input_size.1 as i32, 1i32, 1i32])?;
-                    let mut inputShapeB = TopsDeviceBuffer::from_slice(&[layer.input_size.0 as i32, layer.input_size.1 as i32, 1i32, 1i32])?;
+                    let inputShapeA = TopsDeviceBuffer::from_slice(&[1i32, layer.input_size.0 as i32, layer.input_size.1 as i32])?;
+                    let inputShapeB = TopsDeviceBuffer::from_slice(&[1i32, layer.input_size.0 as i32, layer.input_size.1 as i32])?;
 
                     unsafe {
                         let result = launch!(kernel<<<(1, 1, 1), (1, 1, 1), 0, stream>>>(
@@ -278,9 +280,9 @@ fn network_test() -> DeviceResult<()> {
             match load_module(layer.op) {
                 Ok(module) => {
                     let kernel = module.get_function(&layer.op)?;
-                    let mut inputShapeA = TopsDeviceBuffer::from_slice(&[layer.input_size.0 as i32, layer.input_size.1 as i32, 1i32, 1i32])?;
-                    let mut inputShapeB = TopsDeviceBuffer::from_slice(&[K as i32, K as i32, 1i32, 1i32])?;
-                    let mut channelInfo = TopsDeviceBuffer::from_slice(&[1i32, 1i32, 1i32, 1i32])?;
+                    let inputShapeA = TopsDeviceBuffer::from_slice(&[layer.input_size.0 as i32, layer.input_size.1 as i32, 1i32, 1i32])?;
+                    let inputShapeB = TopsDeviceBuffer::from_slice(&[K as i32, K as i32, 1i32, 1i32])?;
+                    let channelInfo = TopsDeviceBuffer::from_slice(&[1i32, 1i32, 1i32, 1i32])?;
                     unsafe {
                         let result = launch!(kernel<<<(1, 1, 1), (1, 1, 1), 0, stream>>>(
                             matA.as_device_ptr(),
@@ -364,17 +366,17 @@ fn test() -> DeviceResult<()> {
     const N : usize = 3;
 
     const Nbytes : usize = M * N * 4;
-    let mut matA = TopsDeviceBuffer::from_slice(&[1.0f32, 2.0f32, 3.0f32, 4.0f32, 5.0f32, 6.0f32, 1.0f32, 2.0f32, 3.0f32, 4.0f32])?;
-    let mut matB = TopsDeviceBuffer::from_slice(&[1.0f32, 2.0f32, 3.0f32, 4.0f32, 5.0f32, 1.0f32, 2.0f32, 3.0f32, 4.0f32, 5.0f32, 1.0f32, 2.0f32, 3.0f32, 4.0f32, 5.0f32])?;
-    let mut matOut = TopsDeviceBuffer::from_slice(&[0.0f32; M * N])?;
+    let matA = TopsDeviceBuffer::from_slice(&[1.0f32, 2.0f32, 3.0f32, 4.0f32, 5.0f32, 6.0f32, 1.0f32, 2.0f32, 3.0f32, 4.0f32])?;
+    let matB = TopsDeviceBuffer::from_slice(&[1.0f32, 2.0f32, 3.0f32, 4.0f32, 5.0f32, 1.0f32, 2.0f32, 3.0f32, 4.0f32, 5.0f32, 1.0f32, 2.0f32, 3.0f32, 4.0f32, 5.0f32])?;
+    let matOut = TopsDeviceBuffer::from_slice(&[0.0f32; M * N])?;
 
-    let mut out_ref : Option<&TopsDeviceBuffer<f32>> = None;
+    let _out_ref : Option<&TopsDeviceBuffer<f32>> = None;
 
-    let mut inputShapeA = TopsDeviceBuffer::from_slice(&[2i32,5i32,1i32,1i32])?;
-    let mut inputShapeB = TopsDeviceBuffer::from_slice(&[5i32,3i32,1i32,1i32])?;
+    let inputShapeA = TopsDeviceBuffer::from_slice(&[2i32,5i32,1i32,1i32])?;
+    let inputShapeB = TopsDeviceBuffer::from_slice(&[5i32,3i32,1i32,1i32])?;
 
-    let mut outputShape = TopsDeviceBuffer::from_slice(&[2i32,3i32,1i32,1i32])?;
-    let mut layout = TopsDeviceBuffer::from_slice(&[1i32,0i32,2i32,3i32])?;
+    let _outputShape = TopsDeviceBuffer::from_slice(&[2i32,3i32,1i32,1i32])?;
+    let _layout = TopsDeviceBuffer::from_slice(&[1i32,0i32,2i32,3i32])?;
 
     println!("info: launching kernel!\n");
 

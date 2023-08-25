@@ -7,7 +7,7 @@ use uhal::error::{DeviceResult};
 use crate::driv::{topsFunction_t};
 use crate::module::TopsModule;
 use std::marker::PhantomData;
-use std::mem::{transmute, MaybeUninit};
+use std::mem::{MaybeUninit};
 use crate::error::ToResult;
 
 /// Handle to a global kernel function.
@@ -57,7 +57,7 @@ impl<'a> FunctionTrait for TopsFunction<'a> {
     ///
     /// This setting does nothing on devices where the size of the L1 cache and shared memory are
     /// fixed.
-    fn set_cache_config(&mut self, config: CacheConfig) -> DeviceResult<()>{
+    fn set_cache_config(&mut self, _config: CacheConfig) -> DeviceResult<()>{
         // unsafe { driv::topsFuncSetCacheConfig(self.inner as *mut ::std::os::raw::c_void, transmute(config)).to_result() }
         Ok(())
     }
@@ -67,7 +67,7 @@ impl<'a> FunctionTrait for TopsFunction<'a> {
     /// On devices with configurable shared memory banks, this function will set this function's
     /// shared memory bank size which is used for subsequent launches of this function. If not set,
     /// the context-wide setting will be used instead.
-    fn set_shared_memory_config(&mut self, cfg: SharedMemoryConfig) -> DeviceResult<()>{
+    fn set_shared_memory_config(&mut self, _cfg: SharedMemoryConfig) -> DeviceResult<()>{
         // unsafe { driv::topsFuncSetSharedMemConfig(self.inner as *mut ::std::os::raw::c_void, transmute(cfg)).to_result() }
         Ok(())
     }
@@ -84,10 +84,10 @@ impl<'a> FunctionTrait for TopsFunction<'a> {
         blocks: GridSize,
         block_size: BlockSize,
     ) -> DeviceResult<usize>{
-        let num_blocks = blocks.x * blocks.y * blocks.z;
-        let total_block_size = block_size.x * block_size.y * block_size.z;
+        let _num_blocks = blocks.x * blocks.y * blocks.z;
+        let _total_block_size = block_size.x * block_size.y * block_size.z;
 
-        let mut result = MaybeUninit::uninit();
+        let result = MaybeUninit::uninit();
         unsafe {
             //TODO
             // driv::topsOccupancyAvailableDynamicSMemPerBlock(
@@ -106,9 +106,9 @@ impl<'a> FunctionTrait for TopsFunction<'a> {
     fn max_active_blocks_per_multiprocessor(
         &self,
         block_size: BlockSize,
-        dynamic_smem_size: usize,
+        _dynamic_smem_size: usize,
     ) -> DeviceResult<u32>{
-        let total_block_size = block_size.x * block_size.y * block_size.z;
+        let _total_block_size = block_size.x * block_size.y * block_size.z;
 
         // let mut num_blocks = MaybeUninit::uninit();
         // unsafe {
@@ -141,8 +141,8 @@ impl<'a> FunctionTrait for TopsFunction<'a> {
     /// Note: all panics by `dynamic_smem_size` will be ignored and the function will instead use `0`.
     fn suggested_launch_configuration(
         &self,
-        dynamic_smem_size: usize,
-        block_size_limit: BlockSize,
+        _dynamic_smem_size: usize,
+        _block_size_limit: BlockSize,
     ) -> DeviceResult<(u32, u32)>{
         // let mut min_grid_size = MaybeUninit::uninit();
         // let mut block_size = MaybeUninit::uninit();

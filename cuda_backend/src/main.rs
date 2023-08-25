@@ -1,4 +1,4 @@
-use cuda::function::CuFunction;
+
 use cuda::memory::CopyDestination;
 use cuda::memory::CuDeviceBuffer;
 use cuda::module::CuModule;
@@ -7,8 +7,8 @@ use cuda_backend as cuda;
 use cust_core::DeviceCopy;
 use uhal::error::DeviceResult;
 use uhal::function::FunctionTrait;
-use std::borrow::Borrow;
-use std::marker::PhantomData;
+
+
 use uhal::launch;
 use uhal::memory::DeviceBufferTrait;
 use uhal::module::ModuleTrait;
@@ -195,9 +195,9 @@ fn test() -> DeviceResult<()> {
     const N : usize = 3;
 
     const Nbytes : usize = M * N * 4;
-    let mut matA = CuDeviceBuffer::from_slice(&[1.0f32, 2.0f32, 3.0f32, 4.0f32, 5.0f32, 6.0f32, 1.0f32, 2.0f32, 3.0f32])?;
-    let mut matB = CuDeviceBuffer::from_slice(&[4.0f32, 5.0f32, 1.0f32, 2.0f32, 3.0f32, 4.0f32, 5.0f32, 1.0f32, 2.0f32])?;
-    let mut matOut = CuDeviceBuffer::from_slice(&[0.0f32; M * N])?;
+    let matA = CuDeviceBuffer::from_slice(&[1.0f32, 2.0f32, 3.0f32, 4.0f32, 5.0f32, 6.0f32, 1.0f32, 2.0f32, 3.0f32])?;
+    let matB = CuDeviceBuffer::from_slice(&[4.0f32, 5.0f32, 1.0f32, 2.0f32, 3.0f32, 4.0f32, 5.0f32, 1.0f32, 2.0f32])?;
+    let matOut = CuDeviceBuffer::from_slice(&[0.0f32; M * N])?;
 
     println!("info: launching kernel!\n");
 

@@ -57,7 +57,7 @@ impl<'a> StreamTrait<'a> for TopsStream {
     /// a stream with a higher priority number. `Context::get_stream_priority_range` can be used
     /// to get the range of valid priority values; if priority is set outside that range, it will
     /// be automatically clamped to the lowest or highest number in the range.
-    fn new(mut flags: StreamFlags, priority: Option<i32>) -> DeviceResult<Self::StreamT>{
+    fn new(mut flags: StreamFlags, _priority: Option<i32>) -> DeviceResult<Self::StreamT>{
         flags.remove(StreamFlags::NON_BLOCKING);
         unsafe {
             let mut stream = Self::StreamT {
@@ -104,7 +104,7 @@ impl<'a> StreamTrait<'a> for TopsStream {
     /// items will not execute until the callback is finished.
     ///
     /// Callbacks must not make any Device API calls.
-    fn add_callback<T>(&self, callback: Box<T>) -> DeviceResult<()>
+    fn add_callback<T>(&self, _callback: Box<T>) -> DeviceResult<()>
     where
         T: FnOnce() + Send
     {
@@ -160,7 +160,8 @@ impl<'a> StreamTrait<'a> for TopsStream {
         let mut args_ = Vec::new();
         for i in 0..args.len(){
             let vaddress = std::mem::transmute::<*mut c_void, *mut *mut c_void>((*args)[i]);
-            args_.push(*vaddress);
+            unsafe {args_.push(*vaddress);}
+            
         }
 
         let mut size :usize = (std::mem::size_of::<c_ulonglong>() * (args.len() - 1) + std::mem::size_of::<usize>()) as usize;

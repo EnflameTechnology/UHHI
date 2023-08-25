@@ -1,7 +1,3 @@
-#include "tops.h"
-#pragma clang force_cuda_host_device begin
-#include <stdio.h>
-#pragma clang force_cuda_host_device end
 #include <stdio.h>
 #include <tops/tops_runtime.h>
 #include <tops/topsrtc.h>

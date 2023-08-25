@@ -1,7 +1,6 @@
-#include "tops.h"
-#pragma clang force_cuda_host_device begin
 #include <stdio.h>
-#pragma clang force_cuda_host_device end
+#include <tops/tops_runtime.h>
+#include <tops/topsrtc.h>
 
 constexpr int BUF_SIZE = 1024 * 10;
 constexpr int MAX_RANK = 4;
@@ -96,4 +95,15 @@ convolution(float* lhs, float* rhs, float* out, int* matShape, int* kernelShape,
     
   }
   
+}
+
+
+int convolution_cpp(float* lhs, float* rhs, float* out, int* matShape, int* kernelShape, int* channelInfo) {
+    convolution<<<dim3(1,1,1), dim3(1,1,1)>>>(lhs, rhs, out, matShape, kernelShape, channelInfo);
+    return 0;
+}
+
+int main() {
+    return 0;
+
 }

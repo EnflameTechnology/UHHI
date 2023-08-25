@@ -1,8 +1,10 @@
-
 #include "tops.h"
 #pragma clang force_cuda_host_device begin
 #include <stdio.h>
 #pragma clang force_cuda_host_device end
+#include <stdio.h>
+#include <tops/tops_runtime.h>
+#include <tops/topsrtc.h>
 constexpr int BUF_SIZE = 32;
 
 //supported activation kernels: relu (0), gelu (1), leaky relu (2), tanh (3)
@@ -23,12 +25,16 @@ __device__ void copy_to_buffer(
 
 //inputType [input rows, input cols, input activation type]
 //activation type: relu (0), gelu (1), leaky relu (2), tanh (3)
-extern "C"  __global__ void activation(float *x, int size, int type)
+extern "C"  __global__ void activation(float *x, int* param)
 {
     tops_dte_ctx_t ctx;
     tops::dte_scope s(ctx);
+    __valigned__ int buffer[2];
+    copy_to_buffer<int, 2>(ctx, param, buffer);
+    int size = buffer[0];
+    int type = buffer[1];
 
-    printf("size: %d, activation type: %d", size, type);
+    // printf("size: %d, activation type: %d", size, type);
 
     __valigned__ float bufferA[BUF_SIZE];
     __valigned__ float bufferB[BUF_SIZE];
@@ -42,6 +48,9 @@ extern "C"  __global__ void activation(float *x, int size, int type)
     tops::mdspan bufO(tops::Private, &bufferO, bufsize);
 
     for (int i=0; i<size; i+=bufsize) {
+        if (i + bufsize >= size) {
+            bufsize = size - i;
+        }
         tops::mdspan srcA(tops::Global, x+i, bufsize);
         tops::memcpy(ctx, bufA, srcA);
         
@@ -66,14 +75,35 @@ extern "C"  __global__ void activation(float *x, int size, int type)
             tops::vstore(tops::vgelu<vfloat>(v1), bufferO);
         }
 
-
         //copy to results
         tops::mdspan dst(tops::Global, x+i, bufsize);
         tops::memcpy(ctx, dst, bufO);
-
-        if (i + bufsize > size) {
-            bufsize = size - i;
-        }
     }
 
+}
+
+int main(int argc, char *argv[]) {
+    float *a, *a_d;
+    int *p, *p_d;
+    topsHostMalloc((float**)&a, 5 * sizeof(float));
+    topsHostMalloc((int**)&p, 2 * sizeof(int));
+    for (int i=0; i< 5; i++) {
+        a[i] = i * 1.0;
+        printf("%.2f, ", a[i]);
+    }
+    p[0] = 5; p[1] = 3;
+
+    topsMalloc(&a_d, 5 * sizeof(float));
+    topsMalloc(&p_d, 2 * sizeof(int));
+    topsMemcpy(a_d, a, 5 * sizeof(float),
+                        topsMemcpyHostToDevice);
+    topsMemcpy(p_d, p, 2 * sizeof(int),
+                        topsMemcpyHostToDevice);
+
+    activation<<<dim3(1,1,1), dim3(1,1,1)>>>(a_d, p_d);
+    topsMemcpy(a, a_d, 5 * sizeof(float), topsMemcpyDeviceToHost);
+    for (int i=0; i< 5; i++) {
+        printf("%.2f, ", a[i]);
+    }
+    return 0;
 }
