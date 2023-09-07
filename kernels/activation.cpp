@@ -5,6 +5,7 @@
 #include <stdio.h>
 #include <tops/tops_runtime.h>
 #include <tops/topsrtc.h>
+#include <tops/half.h>
 constexpr int BUF_SIZE = 32;
 
 //supported activation kernels: relu (0), gelu (1), leaky relu (2), tanh (3)
@@ -25,7 +26,8 @@ __device__ void copy_to_buffer(
 
 //inputType [input rows, input cols, input activation type]
 //activation type: relu (0), gelu (1), leaky relu (2), tanh (3)
-extern "C"  __global__ void activation(float *x, int* param)
+template<typename T, typename VT>
+__device__ void activation(T *x, int* param)
 {
     tops_dte_ctx_t ctx;
     tops::dte_scope s(ctx);
@@ -36,9 +38,9 @@ extern "C"  __global__ void activation(float *x, int* param)
 
     // printf("size: %d, activation type: %d", size, type);
 
-    __valigned__ float bufferA[BUF_SIZE];
-    __valigned__ float bufferB[BUF_SIZE];
-    __valigned__ float bufferO[BUF_SIZE];
+    __valigned__ T bufferA[BUF_SIZE];
+    __valigned__ T bufferB[BUF_SIZE];
+    __valigned__ T bufferO[BUF_SIZE];
 
     int bufsize = BUF_SIZE;
     if (bufsize > size) {bufsize=size;}
@@ -57,28 +59,39 @@ extern "C"  __global__ void activation(float *x, int* param)
         if (type == 0 || type == 2){ //relu and leaky relu
             for (int j=0; j<bufsize; j++){
                 if (bufferA[j] > 0) {
-                    bufferB[j] = 1.0;
+                    bufferB[j] = static_cast<T>(1.0);
                 } else {
-                    bufferB[j] = (type == 2)? 0.1f : 0.0f;
+                    bufferB[j] = (type == 2)? static_cast<T>(0.1f) : static_cast<T>(0.0f);
                 }
             }
-            const auto &v1 = tops::vload<vfloat>(bufferA);
-            const auto &v2 = tops::vload<vfloat>(bufferB);
-            tops::vstore(tops::vmul<vfloat>(v1, v2), bufferO);
+            const auto &v1 = tops::vload<VT>(bufferA);
+            const auto &v2 = tops::vload<VT>(bufferB);
+            tops::vstore(tops::vmul<VT>(v1, v2), bufferO);
 
         } else if (type == 3) {//tanh
-            const auto &v1 = tops::vload<vfloat>(bufferA);
-            tops::vstore(tops::vtanh<vfloat>(v1), bufferO);
+            const auto &v1 = tops::vload<VT>(bufferA);
+            tops::vstore(tops::vtanh<VT>(v1), bufferO);
 
         } else if (type == 1) {//gelu
-            const auto &v1 = tops::vload<vfloat>(bufferA);
-            tops::vstore(tops::vgelu<vfloat>(v1), bufferO);
+            const auto &v1 = tops::vload<VT>(bufferA);
+            tops::vstore(tops::vgelu<VT>(v1), bufferO);
         }
 
         //copy to results
         tops::mdspan dst(tops::Global, x+i, bufsize);
         tops::memcpy(ctx, dst, bufO);
     }
+
+}
+
+extern "C"  __global__ void activationf32(float *x, int* param)
+{
+    activation<float, vfloat>(x, param);
+}
+
+extern "C"  __global__ void activationf16(tops::half *x, int* param)
+{
+    activation<tops::half, vhalf>(x, param);
 
 }
 
@@ -100,7 +113,7 @@ int main(int argc, char *argv[]) {
     topsMemcpy(p_d, p, 2 * sizeof(int),
                         topsMemcpyHostToDevice);
 
-    activation<<<dim3(1,1,1), dim3(1,1,1)>>>(a_d, p_d);
+    activationf32<<<dim3(1,1,1), dim3(1,1,1)>>>(a_d, p_d);
     topsMemcpy(a, a_d, 5 * sizeof(float), topsMemcpyDeviceToHost);
     for (int i=0; i< 5; i++) {
         printf("%.2f, ", a[i]);

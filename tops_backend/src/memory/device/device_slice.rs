@@ -98,6 +98,13 @@ impl<T: DeviceCopy> TopsDeviceSlice<T> {
         self.ptr
     }
 
+    pub fn as_device_ptr_mut(&mut self) -> &mut TopsDevicePointer<T> {
+        &mut self.ptr
+    }
+
+    pub fn as_device_ptr_ref(&self) -> &TopsDevicePointer<T> {
+        &self.ptr
+    }
     /* TODO (AL): keep these?
     /// Divides one DeviceSlice into two at a given index.
     ///
@@ -591,6 +598,55 @@ impl<T: DeviceCopy> TopsDeviceSlice<T> {
     }
 }
 
+use ::core::ptr;
+use ::std::alloc; // or extern crate alloc; use ::alloc::alloc;
+
+fn alighed_alloc (numbytes: usize, alignment: usize)
+  -> Option<ptr::NonNull<()>>
+{Some({
+    if numbytes == 0 { return None; }
+    let layout =
+        alloc::Layout::from_size_align(numbytes, alignment)
+            .map_err(|err| eprintln!("Layout error: {}", err))
+            .ok()?
+    ;
+    ptr::NonNull::new(unsafe {
+        // # Safety
+        //
+        //   - numbytes != 0
+        alloc::alloc(layout)
+    })?
+        .cast::<()>()
+})}
+
+/// # Safety
+///
+///   - `ptr`, when `NonNull`, must be a value returned by `alloc(numbytes, alignment)`
+// #[require_unsafe_in_body] // or #[allow(unused_unsafe)]
+unsafe
+fn alighed_free (
+    ptr: Option<ptr::NonNull::<()>>,
+    numbytes: usize,
+    alignment: usize,
+)
+{
+    let ptr = if let Some(ptr) = ptr { ptr } else { return; };
+    let layout =
+        alloc::Layout::from_size_align(numbytes, alignment)
+            .unwrap_or_else(|err| {
+                // if same layout as input this should not happen,
+                // so it is a very bad bug if this is reached
+                panic!("Layout error: {}", err);
+            })
+    ;
+    unsafe {
+        // # Safety
+        //
+        //   - `ptr` came from alloc::alloc(layout);
+        alloc::dealloc(ptr.cast::<u8>().as_ptr(), layout);
+    }
+}
+
 //Tops Implementation
 // impl<T: DeviceCopy> crate::memory::private::Sealed for TopsDeviceSlice<T> {}
 impl<T: DeviceCopy, I: AsRef<[T]> + AsMut<[T]> + ?Sized> CopyDestination<I> for TopsDeviceSlice<T> {
@@ -605,12 +661,23 @@ impl<T: DeviceCopy, I: AsRef<[T]> + AsMut<[T]> + ?Sized> CopyDestination<I> for 
             unsafe {
                 //Memcpy in tops is different from CUDA 
                 //Use HostAlloc function in tops to create a buffer for data transfer
-                let mut ptr = std::ptr::null_mut();
-                driv::topsHostMalloc(&mut ptr as *mut *mut c_void, size, 0);
-                std::ptr::copy(val.as_ptr() as *mut c_void, ptr, size);
-                driv::topsMemcpyHtoD(self.ptr.as_raw(), ptr as *mut c_void, size)
-                    .to_result()?;
-                driv::topsFree(ptr);
+                // let mut ptr = std::ptr::null_mut();
+                // driv::topsHostMalloc(&mut ptr as *mut *mut c_void, size, 0);
+                // std::ptr::copy(val.as_ptr() as *mut c_void, ptr, size);
+                // driv::topsMemcpyHtoD(self.ptr.as_raw(), ptr as *mut c_void, size)
+                //     .to_result()?;
+                if size % 4096 != 0 {
+                    let mut ptr = alighed_alloc(size, 4096).unwrap();
+                    std::ptr::copy(val.as_ptr() as *mut c_void, ptr.as_ptr() as *mut c_void, size);
+                    let ret = driv::topsMemcpy(self.ptr.as_raw(), ptr.as_ptr() as *mut c_void, size, driv::topsMemcpyKind::topsMemcpyHostToDevice).to_result();
+                    alighed_free(Some(ptr), size, 4096);
+                    // println!("alighed alloc {}", size);
+                    return ret;
+                } else {
+                    return driv::topsMemcpy(self.ptr.as_raw(), val.as_ptr() as *mut c_void, size, driv::topsMemcpyKind::topsMemcpyHostToDevice).to_result();
+                }
+                // driv::topsDeviceSynchronize().to_result()?;;
+                // driv::topsHostFree(ptr);
 
             }
         }
@@ -640,18 +707,30 @@ impl<T: DeviceCopy, I: AsRef<[T]> + AsMut<[T]> + ?Sized> CopyDestination<I> for 
 }
 
 impl <T:DeviceCopy> TopsDeviceSlice<T> {
-    pub fn copy_from_pointer(&mut self, pointer: *const f32, length: usize) -> DeviceResult<()> {
-        let size = mem::size_of::<f32>() * length;
+    pub fn copy_from_pointer<M>(&mut self, pointer: *const M, length: usize) -> DeviceResult<()> {
+        let size = mem::size_of::<M>() * length;
         if size != 0 {
             unsafe {
                 //Memcpy in tops is different from CUDA 
                 //Use HostAlloc function in tops to create a buffer for data transfer
-                let mut ptr = std::ptr::null_mut();
-                driv::topsHostMalloc(&mut ptr as *mut *mut c_void, size, 0);
-                std::ptr::copy(pointer as *mut c_void, ptr, size);
-                driv::topsMemcpyHtoD(self.ptr.as_raw(), ptr as *mut c_void, size)
-                    .to_result()?;
-                driv::topsFree(ptr);
+                // let mut ptr = std::ptr::null_mut();
+                // driv::topsHostMalloc(&mut ptr as *mut *mut c_void, size, 0);
+                // std::ptr::copy(pointer as *mut c_void, ptr, size);
+                // driv::topsMemcpyHtoD(self.ptr.as_raw(), ptr as *mut c_void, size)
+                //     .to_result()?;
+
+                if size % 4096 != 0 {
+                    let mut ptr = alighed_alloc(size, 4096).unwrap();
+                    std::ptr::copy(pointer as *mut c_void, ptr.as_ptr() as *mut c_void, size);
+                    let ret = driv::topsMemcpy(self.ptr.as_raw(), ptr.as_ptr() as *mut c_void, size, driv::topsMemcpyKind::topsMemcpyHostToDevice).to_result();
+                    alighed_free(Some(ptr), size, 4096);
+                    return ret;
+                } else {
+                    return driv::topsMemcpy(self.ptr.as_raw(), pointer as *mut c_void, size, driv::topsMemcpyKind::topsMemcpyHostToDevice).to_result();
+                // driv::topsDeviceSynchronize().to_result()?;;
+                }
+
+                // driv::topsHostFree(ptr);
 
             }
         }

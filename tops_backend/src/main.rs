@@ -232,7 +232,8 @@ fn network_test() -> DeviceResult<()> {
             let function_name = "activation";
             match load_module(function_name) {
                 Ok(module) => {
-                    let kernel = module.get_function(&function_name)?;
+                    let function_name_f32 = "activationf32";
+                    let kernel = module.get_function(&function_name_f32)?;
                     let param = TopsDeviceBuffer::from_slice(&[(layer.input_size.0 * layer.input_size.1) as i32, map_act[layer.op] as i32])?;
 
                     unsafe {

@@ -11,7 +11,7 @@ pub use tops_raw as driv;
 use driv::{topsError_t};
 use uhal::error::{DeviceResult, DeviceError};
 
-pub(crate) trait ToResult {
+pub trait ToResult {
     fn to_result(self) -> DeviceResult<()>;
 }
 

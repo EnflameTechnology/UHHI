@@ -44,6 +44,18 @@ impl<T: DeviceCopy> DevicePointerTrait<T> for TopsDevicePointer<T>{
         self.ptr as *mut T
     }
 
+    /// Returns the mutable CUdeviceptr.
+    fn as_mut(&mut self) -> &mut Self::RawDevicePointerT
+    {
+        &mut self.ptr
+    }
+
+    /// Returns the referenced CUdeviceptr.
+    fn as_ref(&self) -> &Self::RawDevicePointerT
+    {
+        &self.ptr
+    }
+
     /// Returns the contained CUdeviceptr.
     fn as_raw(&self) -> Self::RawDevicePointerT
     {

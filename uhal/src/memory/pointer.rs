@@ -29,6 +29,8 @@ pub trait DevicePointerTrait<T: ?Sized + DeviceCopy> {
     /// **The pointer is not dereferenceable from the CPU!**
     fn as_mut_ptr(&self) -> *mut T;
 
+    fn as_mut(&mut self) -> &mut Self::RawDevicePointerT;
+    fn as_ref(&self) -> &Self::RawDevicePointerT;
     /// Returns the contained CUdeviceptr.
     fn as_raw(&self) -> Self::RawDevicePointerT;
 

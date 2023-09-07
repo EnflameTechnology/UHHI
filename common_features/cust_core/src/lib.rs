@@ -1,5 +1,4 @@
-#![no_std]
-
+// #![no_std]
 pub use _hidden::*;
 pub use cust_derive::DeviceCopyCore as DeviceCopy;
 
@@ -8,6 +7,7 @@ pub mod _hidden {
     use core::marker::PhantomData;
     use core::mem::MaybeUninit;
     use core::num::*;
+    use std::ffi::c_void;
 
     /// Marker trait for types which can safely be copied to or from a CUDA device.
     ///
@@ -70,7 +70,12 @@ pub mod _hidden {
     /// # Safety
     ///
     /// The type being implemented must hold no references to CPU data.
-    pub unsafe trait DeviceCopy: Copy {}
+    pub unsafe trait DeviceCopy : Copy {
+        #[inline(always)]
+        fn as_kernel_param(&self) -> *mut std::ffi::c_void {
+            self as *const Self as *mut _
+        }
+    }
 
     macro_rules! impl_device_copy {
     ($($t:ty)*) => {
@@ -159,6 +164,9 @@ pub mod _hidden {
     }
 }
 
+    use half::f16;
+    use half::bf16;
+
     #[cfg(feature = "vek")]
     use vek::*;
 
@@ -183,9 +191,10 @@ pub mod _hidden {
     }
 
     #[cfg(feature = "half")]
-    unsafe impl DeviceCopy for half::f16 {}
+    unsafe impl DeviceCopy for f16 {}
+
     #[cfg(feature = "half")]
-    unsafe impl DeviceCopy for half::bf16 {}
+    unsafe impl DeviceCopy for bf16 {}
 
     #[cfg(feature = "num-complex")]
     impl_device_copy_generic! {

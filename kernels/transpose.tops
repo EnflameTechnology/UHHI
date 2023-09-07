@@ -4,7 +4,7 @@
 #pragma clang force_cuda_host_device end
 
 constexpr int MAX_RANK = 4;
-constexpr int MAX_DIM = 512; //maximum transpose input size: 512 x 512
+constexpr int MAX_DIM = 512; 
 template <typename T, std::size_t N>
 __device__ void copy_to_buffer(
   tops_dte_ctx_t& ctx, 

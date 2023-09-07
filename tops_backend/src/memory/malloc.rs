@@ -149,8 +149,7 @@ impl TopsMemory {
             return Err(DeviceError::InvalidMemoryAllocation);
         }
     
-        driv::topsFree(ptr.as_raw()).to_result()?;
-        Ok(())
+        return driv::topsFree(ptr.as_raw()).to_result();
     }
 
 }

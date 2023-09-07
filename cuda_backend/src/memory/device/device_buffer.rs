@@ -213,7 +213,7 @@ impl<T: DeviceCopy> DeviceBufferTrait<T> for CuDeviceBuffer<T> {
     ///     },
     /// }
     /// ```
-    fn drop(mut dev_buf: &mut Self::DeviceBufferT) -> DropResult<Self::DeviceBufferT> {
+    fn manual_drop(mut dev_buf: &mut Self::DeviceBufferT) -> DropResult<Self::DeviceBufferT> {
         if dev_buf.buf.is_null() {
             return Ok(());
         }
@@ -303,6 +303,28 @@ impl<T: DeviceCopy> DeviceBufferTrait<T> for CuDeviceBuffer<T> {
     /// Explicitly creates a [`DeviceSlice`] from this buffer.
     fn as_slice(&self) -> &Self::DeviceSliceT {
         self
+    }
+}
+
+
+impl<T: DeviceCopy> Drop for CuDeviceBuffer<T> {
+    fn drop(&mut self) {
+        if self.buf.is_null() {
+            return;
+        }
+        if self.len > 0 && size_of::<T>() > 0 {
+            let capacity = self.len;
+            let ptr = mem::replace(&mut self.buf, CuDevicePointer::null());
+            unsafe {
+                match CuMemory::free(ptr) {
+                    Ok(()) => {
+                        mem::forget(self);
+                        let size = capacity * size_of::<T>();
+                    }
+                    Err(e) => {panic!("Unable to drop device buffer!");}
+                }
+            }
+        } 
     }
 }
 

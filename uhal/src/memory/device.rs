@@ -191,7 +191,7 @@ pub trait DeviceBufferTrait<T: DeviceCopy> {
     ///
     /// Deallocating device memory can return errors from previous asynchronous work. This function
     /// destroys the given buffer and returns the error and the un-destroyed buffer on failure.
-    fn drop(dev_buf: &mut Self::DeviceBufferT) -> DropResult<Self::DeviceBufferT>;
+    fn manual_drop(dev_buf: &mut Self::DeviceBufferT) -> DropResult<Self::DeviceBufferT>;
 
     /// Allocate a new device buffer of the same size as `slice`, initialized with a clone of
     /// the data in `slice`.
@@ -222,7 +222,7 @@ pub trait DeviceBufferTrait<T: DeviceCopy> {
 
 pub trait DeviceBufferTraitEx {
     type DeviceBufferT;
-    fn from_pointer(pointer: *const f32, size: usize) -> DeviceResult<Self::DeviceBufferT>;
+    fn from_pointer<M>(pointer: *const M, size: usize) -> DeviceResult<Self::DeviceBufferT>;
 }
 pub trait DeviceBoxTrait<T: DeviceCopy> {
     type DeviceBoxT;

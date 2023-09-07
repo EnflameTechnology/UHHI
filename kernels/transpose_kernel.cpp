@@ -38,6 +38,14 @@ extern "C" __global__ void transpose_kernel(float *idata, float *odata, int* siz
   tops_dte_ctx_t ctx;
   tops::dte_scope s(ctx);
 
+  __valigned__ float tile[TILE_DIM][TILE_DIM];
+}
+
+extern "C" __global__ void transpose_kernel1(float *idata, float *odata, int* size)
+{
+  tops_dte_ctx_t ctx;
+  tops::dte_scope s(ctx);
+
   __valigned__ int shape[MAX_RANK];
   copy_to_buffer<int, MAX_RANK>(ctx, size, shape);
   int rows = shape[1];
@@ -66,15 +74,20 @@ extern "C" __global__ void transpose_kernel(float *idata, float *odata, int* siz
     tops::memcpy(ctx, buf, src);
   }
 
-  __valigned__ int tileShape[2] = {TILE_DIM, TILE_DIM};
-  tops::mdspan src(tops::Private, tile, tileShape);
+
+  // __valigned__ int tileShape[2] = {TILE_DIM, TILE_DIM};
+  // tops::mdspan src(tops::Private, tile, tileShape);
   __valigned__ float matBbuffer[TILE_DIM][TILE_DIM];    
-  
-  tops::mdspan dst1(tops::Private, matBbuffer, tileShape);
+  for (int i=0; i<TILE_DIM; i++) {
+    for(int j=0; j<TILE_DIM; j++) {
+      matBbuffer[i][j] = tile[j][i];
+    }
+  }
+  // tops::mdspan dst1(tops::Private, matBbuffer, tileShape);
   // layout parameter
-  __valigned__ int layout[2] = {1, 0};
+  // __valigned__ int layout[2] = {1, 0};
   //transpose of matB to temp buffer (matBbuffer)
-  tops::transpose(ctx, dst1, src, layout);
+  // tops::transpose(ctx, dst1, src, layout);
 
   __syncthreads();
   x = threadId / GRIDS;
@@ -124,13 +137,13 @@ extern "C" __global__ void transpose_kernel(float *idata, float *odata, int* siz
 // }
 
 
-int main(int argc, char *argv[])
+int test_transpose(int M, int N)
 {
     float *lhs_d, *rhs_d, *out_d;
     float *lhs_h, *rhs_h, *out_h;
     int *shape_lhs_d, *shape_rhs_d;
-    int M = 48;
-    int N = 128;
+    // int M = 48;
+    // int N = 128;
     const int batch = 1;
 
     size_t size_lhs = M * N;
@@ -190,13 +203,36 @@ int main(int argc, char *argv[])
     CHECK(topsMemcpy(out_h, out_d, batch * size_out * sizeof(float), topsMemcpyDeviceToHost));
 
     printf("print results\n");
+    topsDeviceSynchronize();
+    // for (size_t i = 0; i < N; i++) {
+    //       for (size_t j = 0; j < M; j++) {
+    //           printf("%.2f,", out_h[i * M + j]);
+    //       }
+    //       printf("\n\r\n");
+    // }
 
-    for (size_t i = 0; i < N; i++) {
-          for (size_t j = 0; j < M; j++) {
-              printf("%.2f,", out_h[i * M + j]);
-          }
-          printf("\n\r\n");
+    topsHostFree(lhs_h);
+    topsHostFree(out_h);
+
+    for (int i=0; i< 20; i++) {
+      topsFree(lhs_d);
+      // topsFree(rhs_d);
+      topsFree(out_d);
+      topsFree(shape_lhs_d);
+      // topsFree(shape_rhs_d);
     }
 
+
+
+    // free(lhs_h);
+    // free(rhs_h);
+    // free(out_h);
+
     return 0;
+}
+
+int main(int argc, char *argv[])
+{
+  for (int i=0; i< 1; i++) 
+    test_transpose(4096, 11008);
 }

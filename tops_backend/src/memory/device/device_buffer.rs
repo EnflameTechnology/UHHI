@@ -66,8 +66,11 @@ impl<T: DeviceCopy> DeviceBufferTrait<T> for TopsDeviceBuffer<T> {
     unsafe fn uninitialized(size: usize) -> DeviceResult<Self::DeviceBufferT>
     {
         let ptr = if size > 0 && size_of::<T>() > 0 {
-            GCU_MEM_USED += size;
-            GCU_MEM_ALLOCATED += size;
+            GCU_MEM_USED += size * size_of::<T>();
+            GCU_MEM_ALLOCATED += size * size_of::<T>();
+            if GCU_MEM_ALLOCATED/1024/1024/1024 != (GCU_MEM_ALLOCATED-size)/1024/1024/1024 {
+                println!("GCU Memory Actually Used: {} MB, Once Allocated {} MB", GCU_MEM_USED/1024/1024, GCU_MEM_ALLOCATED/1024/1024);
+            }
             TopsMemory::malloc(size)?
         } else {
             // FIXME (AL): Do we /really/ want to allow creating an invalid buffer?
@@ -219,7 +222,7 @@ impl<T: DeviceCopy> DeviceBufferTrait<T> for TopsDeviceBuffer<T> {
     ///     },
     /// }
     /// ```
-    fn drop(mut dev_buf: &mut Self::DeviceBufferT) -> DropResult<Self::DeviceBufferT>
+    fn manual_drop(mut dev_buf: &mut Self::DeviceBufferT) -> DropResult<Self::DeviceBufferT>
     {
         if dev_buf.buf.is_null() {
             return Ok(());
@@ -232,8 +235,11 @@ impl<T: DeviceCopy> DeviceBufferTrait<T> for TopsDeviceBuffer<T> {
                 match TopsMemory::free(ptr) {
                     Ok(()) => {
                         mem::forget(dev_buf);
-                        GCU_MEM_USED -= capacity;
-                        println!("GCU Memory Actually Used: {} MB, Once Allocated {} MB", GCU_MEM_USED/1024/1024, GCU_MEM_ALLOCATED/1024/1024);
+                        let size = capacity * size_of::<T>();
+                        GCU_MEM_USED -= size;
+                        if GCU_MEM_USED/1024/1024/1024 != (GCU_MEM_USED+size)/1024/1024/1024 {
+                            println!("GCU Memory Actually Used: {} MB, Once Allocated {} MB", GCU_MEM_USED/1024/1024, GCU_MEM_ALLOCATED/1024/1024);
+                        }
                         Ok(())
                     }
                     Err(e) => Err((e, TopsDeviceBuffer::from_raw_parts(ptr, capacity))),
@@ -243,7 +249,6 @@ impl<T: DeviceCopy> DeviceBufferTrait<T> for TopsDeviceBuffer<T> {
             Ok(())
         }
     }
-
     /// Allocate a new device buffer of the same size as `slice`, initialized with a clone of
     /// the data in `slice`.
     ///
@@ -315,9 +320,34 @@ impl<T: DeviceCopy> DeviceBufferTrait<T> for TopsDeviceBuffer<T> {
     }
 }
 
+impl<T: DeviceCopy> Drop for TopsDeviceBuffer<T> {
+    fn drop(&mut self) {
+        if self.buf.is_null() {
+            return;
+        }
+        if self.len > 0 && size_of::<T>() > 0 {
+            let capacity = self.len;
+            let ptr = mem::replace(&mut self.buf, TopsDevicePointer::null());
+            unsafe {
+                match TopsMemory::free(ptr) {
+                    Ok(()) => {
+                        mem::forget(self);
+                        let size = capacity * size_of::<T>();
+                        GCU_MEM_USED -= size;
+                        if GCU_MEM_USED/1024/1024/1024 != (GCU_MEM_USED+size)/1024/1024/1024 {
+                            println!("GCU Memory Actually Used: {} MB, Once Allocated {} MB", GCU_MEM_USED/1024/1024, GCU_MEM_ALLOCATED/1024/1024);
+                        }
+                        // Ok(())
+                    }
+                    Err(e) => {panic!("Unable to drop device buffer!");}
+                }
+            }
+        } 
+    }
+}
 impl DeviceBufferTraitEx for TopsDeviceBuffer<f32> {
     type DeviceBufferT = TopsDeviceBuffer<f32>;
-    fn from_pointer(pointer: *const f32, size: usize) -> DeviceResult<Self::DeviceBufferT> {
+    fn from_pointer<M>(pointer: *const M, size: usize) -> DeviceResult<Self::DeviceBufferT> {
 
         unsafe {
             let mut uninit = TopsDeviceBuffer::uninitialized(size)?;
