@@ -661,20 +661,20 @@ impl<T: DeviceCopy, I: AsRef<[T]> + AsMut<[T]> + ?Sized> CopyDestination<I> for 
             unsafe {
                 //Memcpy in tops is different from CUDA 
                 //Use HostAlloc function in tops to create a buffer for data transfer
-                // let mut ptr = std::ptr::null_mut();
-                // driv::topsHostMalloc(&mut ptr as *mut *mut c_void, size, 0);
-                // std::ptr::copy(val.as_ptr() as *mut c_void, ptr, size);
-                // driv::topsMemcpyHtoD(self.ptr.as_raw(), ptr as *mut c_void, size)
-                //     .to_result()?;
                 if size % 4096 != 0 {
-                    let mut ptr = alighed_alloc(size, 4096).unwrap();
-                    std::ptr::copy(val.as_ptr() as *mut c_void, ptr.as_ptr() as *mut c_void, size);
-                    let ret = driv::topsMemcpy(self.ptr.as_raw(), ptr.as_ptr() as *mut c_void, size, driv::topsMemcpyKind::topsMemcpyHostToDevice).to_result();
-                    alighed_free(Some(ptr), size, 4096);
-                    // println!("alighed alloc {}", size);
+                    // let mut ptr = alighed_alloc(size, 4096).unwrap();
+                    // std::ptr::copy(val.as_ptr() as *mut c_void, ptr.as_ptr() as *mut c_void, size);
+                    // let ret = driv::topsMemcpy(self.ptr.as_raw(), ptr.as_ptr() as *mut c_void, size, driv::topsMemcpyKind::topsMemcpyHostToDevice).to_result();
+                    // alighed_free(Some(ptr), size, 4096);
+                    // return ret;
+                    let mut ptr = std::ptr::null_mut();
+                    driv::topsHostMalloc(&mut ptr as *mut *mut c_void, size, 0);
+                    std::ptr::copy(val.as_ptr() as *mut c_void, ptr, size);
+                    let ret = driv::topsMemcpyHtoD(self.ptr.as_raw(), ptr as *mut c_void, size).to_result();
+                    driv::topsHostFree(ptr);
                     return ret;
                 } else {
-                    return driv::topsMemcpy(self.ptr.as_raw(), val.as_ptr() as *mut c_void, size, driv::topsMemcpyKind::topsMemcpyHostToDevice).to_result();
+                    return driv::topsMemcpyHtoD(self.ptr.as_raw(), val.as_ptr() as *mut c_void, size).to_result();
                 }
                 // driv::topsDeviceSynchronize().to_result()?;;
                 // driv::topsHostFree(ptr);

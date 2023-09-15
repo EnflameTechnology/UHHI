@@ -38,14 +38,6 @@ extern "C" __global__ void transpose_kernel(float *idata, float *odata, int* siz
   tops_dte_ctx_t ctx;
   tops::dte_scope s(ctx);
 
-  __valigned__ float tile[TILE_DIM][TILE_DIM];
-}
-
-extern "C" __global__ void transpose_kernel1(float *idata, float *odata, int* size)
-{
-  tops_dte_ctx_t ctx;
-  tops::dte_scope s(ctx);
-
   __valigned__ int shape[MAX_RANK];
   copy_to_buffer<int, MAX_RANK>(ctx, size, shape);
   int rows = shape[1];
