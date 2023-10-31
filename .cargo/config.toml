@@ -1,0 +1,1 @@
+rustflags = ["-C", "link-arg=-Wl,-rpath=/opt/tops/lib"]
