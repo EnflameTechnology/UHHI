@@ -1,6 +1,7 @@
-/target
+*/target
 /lib
 /libdebug
 *.gz
 *.deb
 *.patch
+/target
