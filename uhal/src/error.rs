@@ -98,15 +98,16 @@ impl fmt::Display for DeviceError {
             DeviceError::OutOfMemory => write!(f, "Invalid memory allocation"),
             DeviceError::UnknownError => write!(f, "OptiX error"),
             other if (other as u32) <= 999 => {
-                let value = other as u32;
-                let mut ptr: *const c_char = ptr::null();
-                unsafe {
+                // let value = other as u32;
+                // let mut ptr: *const c_char = ptr::null();
+                // unsafe {
+                    
                     // driv::cuGetErrorString(mem::transmute(value), &mut ptr as *mut *const c_char)
                     //     .to_result()
                     //     .map_err(|_| fmt::Error)?;
-                    let cstr = CStr::from_ptr(ptr);
-                    write!(f, "{:?}", cstr)
-                }
+                    // let cstr = CStr::from_ptr(ptr);
+                    write!(f, "{:?}", other)
+                // }
             }
             // This shouldn't happen
             _ => write!(f, "Unknown error"),

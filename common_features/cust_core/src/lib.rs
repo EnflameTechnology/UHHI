@@ -148,6 +148,32 @@ pub mod _hidden {
     {
     }
 
+    unsafe impl<
+        A: DeviceCopy,
+        B: DeviceCopy,
+        C: DeviceCopy,
+        D: DeviceCopy,
+        E: DeviceCopy,
+        F: DeviceCopy,
+        G: DeviceCopy,
+        H: DeviceCopy,
+        I: DeviceCopy,
+        J: DeviceCopy,
+        K: DeviceCopy,
+        L: DeviceCopy,
+        M: DeviceCopy,
+        N: DeviceCopy,
+        O: DeviceCopy,
+        P: DeviceCopy,
+        Q: DeviceCopy,
+        R: DeviceCopy,
+        S: DeviceCopy,
+        T: DeviceCopy,
+        U: DeviceCopy,
+        > DeviceCopy for (A, B, C, D, E, F, G, H, I, J, K,   L, M,  N,  O,  P,  Q,   R, S,  T,  U)
+    {
+    }
+
     macro_rules! impl_device_copy_generic {
     ($($($strukt:ident)::+),* $(,)?) => {
         $(
