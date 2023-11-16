@@ -157,15 +157,15 @@ impl<'a> StreamTrait<'a> for TopsStream {
         let block_size: BlockSize = block_size.into();
 
         //Layout of parameters for launchkernel in tops is different from CUDA!!!
-        let mut args_ = Vec::new();
-        for i in 0..args.len(){
-            let vaddress = std::mem::transmute::<*mut c_void, *mut *mut c_void>((*args)[i]);
-            unsafe {args_.push(*vaddress);}
+        // let mut args_ = Vec::new();
+        // for i in 0..args.len(){
+        //     let vaddress = std::mem::transmute::<*mut c_void, *mut *mut c_void>((*args)[i]);
+        //     unsafe {args_.push(*vaddress);}
             
-        }
+        // }
 
-        let mut size :usize = (std::mem::size_of::<c_ulonglong>() * (args.len() - 1) + std::mem::size_of::<usize>()) as usize;
-        let mut config = vec![0x1 as *const c_void, args_.as_mut_ptr() as *const _ as *mut c_void, 0x2 as *const c_void, &mut size as *const _ as *mut c_void, 0x3 as *const c_void];
+        // let mut size :usize = (std::mem::size_of::<c_ulonglong>() * (args.len() - 1) + std::mem::size_of::<usize>()) as usize;
+        // let mut config = vec![0x1 as *const c_void, args_.as_mut_ptr() as *const _ as *mut c_void, 0x2 as *const c_void, &mut size as *const _ as *mut c_void, 0x3 as *const c_void];
 
         let nul = ptr::null_mut();
 
@@ -174,8 +174,9 @@ impl<'a> StreamTrait<'a> for TopsStream {
             block_size.x, block_size.y, block_size.z,
             shared_mem_bytes as u32,
             self.0,
+            args.as_ptr() as *mut *mut c_void,    
             nul as *mut *mut c_void,
-            config.as_mut_ptr() as *mut *mut c_void            
+            // config.as_mut_ptr() as *mut *mut c_void            
         )
         .to_result()
     }

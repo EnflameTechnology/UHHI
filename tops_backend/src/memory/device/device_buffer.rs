@@ -269,11 +269,11 @@ impl<T: DeviceCopy> DeviceBufferTrait<T> for TopsDeviceBuffer<T> {
     /// ```
     fn from_slice(slice: &[T]) -> DeviceResult<Self::DeviceBufferT>
     {
-        unsafe {
-            let mut uninit = TopsDeviceBuffer::uninitialized(slice.len())?;
+        // 
+            let mut uninit = unsafe { TopsDeviceBuffer::uninitialized(slice.len())? };
             uninit.copy_from(slice)?;
             Ok(uninit)
-        }
+        // }
     }
 
     /// Asynchronously allocate a new buffer of the same size as `slice`, initialized
