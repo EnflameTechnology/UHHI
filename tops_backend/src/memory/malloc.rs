@@ -84,11 +84,12 @@ impl TopsMemory {
         }
     
         let mut ptr: *mut c_void = ptr::null_mut();
-        /// ********************* topsapi does not support async malloc/free *****
 
-        driv::topsMalloc(
+        driv::topsMallocAsync(
             &mut ptr as *mut *mut c_void,
-            size
+            size,
+            stream.as_inner(),
+            0,
         )
         .to_result()?;
         let ptr = ptr as *mut T;
@@ -111,8 +112,7 @@ impl TopsMemory {
         if mem::size_of::<T>() == 0 {
             return Err(DeviceError::InvalidMemoryAllocation);
         }
-        /// ********************* topsapi does not support async malloc/free *****
-        driv::topsFree(p.as_raw()).to_result()
+        driv::topsFreeAsync(p.as_raw(), stream.as_inner()).to_result()
     }
 
     

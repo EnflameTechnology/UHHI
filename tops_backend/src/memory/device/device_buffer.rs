@@ -25,6 +25,7 @@ use super::{TopsDeviceSlice, CopyDestination, AsyncCopyDestination};
 pub struct TopsDeviceBuffer<T: DeviceCopy> {
     buf: TopsDevicePointer<T>,
     len: usize,
+    stream: Option<topsStream_t>,
 }
 
 // static mut GCU_MEM_USED : usize = 0;
@@ -79,6 +80,7 @@ impl<T: DeviceCopy> DeviceBufferTrait<T> for TopsDeviceBuffer<T> {
         Ok(TopsDeviceBuffer {
             buf: ptr,
             len: size,
+            stream: None,
         })
     }
 
@@ -104,6 +106,7 @@ impl<T: DeviceCopy> DeviceBufferTrait<T> for TopsDeviceBuffer<T> {
         Ok(TopsDeviceBuffer {
             buf: ptr,
             len: size,
+            stream: Some(stream.as_inner()),
         })
     }
 
@@ -197,6 +200,7 @@ impl<T: DeviceCopy> DeviceBufferTrait<T> for TopsDeviceBuffer<T> {
         TopsDeviceBuffer {
             buf: ptr,
             len: capacity,
+            stream: None,
         }
     }
 
@@ -329,17 +333,31 @@ impl<T: DeviceCopy> Drop for TopsDeviceBuffer<T> {
             let capacity = self.len;
             let ptr = mem::replace(&mut self.buf, TopsDevicePointer::null());
             unsafe {
-                match TopsMemory::free(ptr) {
-                    Ok(()) => {
-                        mem::forget(self);
-                        // let size = capacity * size_of::<T>();
-                        // GCU_MEM_USED -= size;
-                        // if GCU_MEM_USED/1024/1024/1024 != (GCU_MEM_USED+size)/1024/1024/1024 {
-                        //     println!("GCU Memory Actually Used: {} MB, Once Allocated {} MB", GCU_MEM_USED/1024/1024, GCU_MEM_ALLOCATED/1024/1024);
-                        // }
-                        // Ok(())
+                match self.stream {
+                    Some(stream_) => {
+                        // println!("Not dropping buffer {}", self.len);
+                        // return;
+                        match driv::topsFreeAsync(ptr.as_raw(), stream_).to_result() {
+                            Ok(()) => {
+                                mem::forget(self);
+                            }
+                            Err(e) => {panic!("Unable to drop device buffer!");}
+                        }
+                    },
+                    _ => {
+                        match TopsMemory::free(ptr) {
+                            Ok(()) => {
+                                mem::forget(self);
+                                // let size = capacity * size_of::<T>();
+                                // GCU_MEM_USED -= size;
+                                // if GCU_MEM_USED/1024/1024/1024 != (GCU_MEM_USED+size)/1024/1024/1024 {
+                                //     println!("GCU Memory Actually Used: {} MB, Once Allocated {} MB", GCU_MEM_USED/1024/1024, GCU_MEM_ALLOCATED/1024/1024);
+                                // }
+                                // Ok(())
+                            }
+                            Err(e) => {panic!("Unable to drop device buffer!");}
+                        }
                     }
-                    Err(e) => {panic!("Unable to drop device buffer!");}
                 }
             }
         } 

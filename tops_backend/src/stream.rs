@@ -57,8 +57,7 @@ impl<'a> StreamTrait<'a> for TopsStream {
     /// a stream with a higher priority number. `Context::get_stream_priority_range` can be used
     /// to get the range of valid priority values; if priority is set outside that range, it will
     /// be automatically clamped to the lowest or highest number in the range.
-    fn new(mut flags: StreamFlags, _priority: Option<i32>) -> DeviceResult<Self::StreamT>{
-        flags.remove(StreamFlags::NON_BLOCKING);
+    fn new(flags: StreamFlags, _priority: Option<i32>) -> DeviceResult<Self::StreamT>{
         unsafe {
             let mut stream = Self::StreamT {
                 0: ptr::null_mut(),
