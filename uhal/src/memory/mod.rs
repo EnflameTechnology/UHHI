@@ -103,5 +103,5 @@ pub trait MemCpyTrait {
     /// Returns in `.0` the amount of memory on the device that is free according to
     /// the OS. Device is not guaranteed to be able to allocate all of the memory that
     /// the OS reports as free.
-    fn mem_get_info() -> DeviceResult<(usize, usize)>;
+    fn mem_get_info() -> DeviceResult<(u64, u64)>;
 }

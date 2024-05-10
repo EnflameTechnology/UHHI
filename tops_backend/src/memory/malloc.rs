@@ -60,7 +60,7 @@ impl TopsMemory {
         }
     
         let mut ptr = ptr::null_mut();
-        driv::topsMalloc(&mut ptr as *mut *mut c_void, size).to_result()?;
+        driv::topsMalloc(&mut ptr as *mut *mut c_void, size as u64).to_result()?;
         Ok(TopsDevicePointer::from_raw(ptr))
     }
 
@@ -87,7 +87,7 @@ impl TopsMemory {
 
         driv::topsMallocAsync(
             &mut ptr as *mut *mut c_void,
-            size,
+            size as u64,
             stream.as_inner(),
             0,
         )

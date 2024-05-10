@@ -212,7 +212,7 @@ pub trait DeviceTrait {
     fn devices() -> DeviceResult<Self::DevicesT>;
 
     /// Returns the total amount of memory available on the device in bytes.
-    fn total_memory(self) -> DeviceResult<usize>;
+    fn total_memory(self) -> DeviceResult<u64>;
 
     /// Returns the name of this device.
     fn name(self) -> DeviceResult<String>;

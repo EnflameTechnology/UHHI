@@ -64,7 +64,7 @@ impl MemCpyTrait for TopsMemCpy {
         size: usize,
     ) -> DeviceResult<()>
     {
-        driv::topsMemcpyHtoD(d_ptr, src_ptr as *mut c_void, size).to_result()?;
+        driv::topsMemcpyHtoD(d_ptr, src_ptr as *mut c_void, size as u64).to_result()?;
         Ok(())
     }
     
@@ -76,7 +76,7 @@ impl MemCpyTrait for TopsMemCpy {
         size: usize,
     ) -> DeviceResult<()>
     {
-        driv::topsMemcpyDtoH(d_ptr, src_ptr, size).to_result()?;
+        driv::topsMemcpyDtoH(d_ptr, src_ptr, size as u64).to_result()?;
         Ok(())
     }
     
@@ -86,7 +86,7 @@ impl MemCpyTrait for TopsMemCpy {
     /// Returns in `.0` the amount of memory on the device that is free according to
     /// the OS. Device is not guaranteed to be able to allocate all of the memory that
     /// the OS reports as free.
-    fn mem_get_info() -> DeviceResult<(usize, usize)>
+    fn mem_get_info() -> DeviceResult<(u64, u64)>
     {
         let mut mem_free = 0;
         let mut mem_total = 0;
