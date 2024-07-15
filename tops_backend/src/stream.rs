@@ -19,8 +19,6 @@ use uhal::error::{DeviceResult, DropResult, DeviceError};
 
 use std::ffi::c_void;
 use std::mem;
-use std::os::raw::c_ulonglong;
-use std::panic;
 use std::ptr;
 
 use crate::event::TopsEvent;
@@ -33,16 +31,16 @@ pub struct TopsStream(topsStream_t);
 unsafe impl Send for TopsStream {}
 unsafe impl Sync for TopsStream {}
 
-unsafe extern "C" fn callback_wrapper<T>(callback: *mut c_void)
-where
-    T: FnOnce() + Send,
-{
-    // Stop panics from unwinding across the FFI
-    let _ = panic::catch_unwind(|| {
-        let callback: Box<T> = Box::from_raw(callback as *mut T);
-        callback();
-    });
-}
+// unsafe extern "C" fn callback_wrapper<T>(callback: *mut c_void)
+// where
+//     T: FnOnce() + Send,
+// {
+//     // Stop panics from unwinding across the FFI
+//     let _ = panic::catch_unwind(|| {
+//         let callback: Box<T> = Box::from_raw(callback as *mut T);
+//         callback();
+//     });
+// }
 
 
 impl<'a> StreamTrait<'a> for TopsStream {
@@ -57,7 +55,7 @@ impl<'a> StreamTrait<'a> for TopsStream {
     /// a stream with a higher priority number. `Context::get_stream_priority_range` can be used
     /// to get the range of valid priority values; if priority is set outside that range, it will
     /// be automatically clamped to the lowest or highest number in the range.
-    fn new(flags: StreamFlags, _priority: Option<i32>) -> DeviceResult<Self::StreamT>{
+    fn new(_flags: StreamFlags, _priority: Option<i32>) -> DeviceResult<Self::StreamT>{
         unsafe {
             let mut stream = Self::StreamT {
                 0: ptr::null_mut(),

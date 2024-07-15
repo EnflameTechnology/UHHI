@@ -245,7 +245,7 @@ impl ModuleTrait for TopsModule {
             let inner = mem::replace(&mut module.0, ptr::null_mut());
             match driv::topsModuleUnload(inner).to_result() {
                 Ok(()) => {
-                    mem::forget(module.0);
+                    let _ = mem::forget(module.0);
                     Ok(())
                 }
                 Err(e) => Err((e, TopsModule{ 0:inner })),

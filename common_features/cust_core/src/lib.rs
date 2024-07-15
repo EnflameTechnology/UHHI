@@ -7,7 +7,6 @@ pub mod _hidden {
     use core::marker::PhantomData;
     use core::mem::MaybeUninit;
     use core::num::*;
-    use std::ffi::c_void;
 
     /// Marker trait for types which can safely be copied to or from a CUDA device.
     ///

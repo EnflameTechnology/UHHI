@@ -113,7 +113,7 @@ impl DriverLibraryTrait for TopsApi {
         TopsApi::init(Flags::empty())?;
         let num_devices = TopsDevice::num_devices().unwrap();
         if device_id < num_devices {
-            TopsDevice::select_device(device_id);
+            let _ = TopsDevice::select_device(device_id);
         }
         TopsDevice::get_device(device_id)
         // let ctx = TopsContext::new(device)?;
