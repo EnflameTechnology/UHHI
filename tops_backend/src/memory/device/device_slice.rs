@@ -718,17 +718,17 @@ impl <T:DeviceCopy> TopsDeviceSlice<T> {
                 // std::ptr::copy(pointer as *mut c_void, ptr, size);
                 // driv::topsMemcpyHtoD(self.ptr.as_raw(), ptr as *mut c_void, size)
                 //     .to_result()?;
-
-                if size % 4096 != 0 {
-                    let mut ptr = alighed_alloc(size, 4096).unwrap();
-                    std::ptr::copy(pointer as *mut c_void, ptr.as_ptr() as *mut c_void, size);
-                    let ret = driv::topsMemcpy(self.ptr.as_raw(), ptr.as_ptr() as *mut c_void, size as u64, driv::topsMemcpyKind::topsMemcpyHostToDevice).to_result();
-                    alighed_free(Some(ptr), size, 4096);
-                    return ret;
-                } else {
-                    return driv::topsMemcpy(self.ptr.as_raw(), pointer as *mut c_void, size as u64, driv::topsMemcpyKind::topsMemcpyHostToDevice).to_result();
-                // driv::topsDeviceSynchronize().to_result()?;;
-                }
+                return driv::topsMemcpyHtoD(self.ptr.as_raw(), pointer as *mut c_void, size as u64).to_result();
+                // if size % 4096 != 0 {
+                //     let mut ptr = alighed_alloc(size, 4096).unwrap();
+                //     std::ptr::copy(pointer as *mut c_void, ptr.as_ptr() as *mut c_void, size);
+                //     let ret = driv::topsMemcpy(self.ptr.as_raw(), ptr.as_ptr() as *mut c_void, size as u64, driv::topsMemcpyKind::topsMemcpyHostToDevice).to_result();
+                //     alighed_free(Some(ptr), size, 4096);
+                //     return ret;
+                // } else {
+                //     return driv::topsMemcpy(self.ptr.as_raw(), pointer as *mut c_void, size as u64, driv::topsMemcpyKind::topsMemcpyHostToDevice).to_result();
+                // // driv::topsDeviceSynchronize().to_result()?;;
+                // }
 
                 // driv::topsHostFree(ptr);
 
