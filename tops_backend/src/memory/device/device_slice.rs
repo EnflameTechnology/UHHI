@@ -1,14 +1,15 @@
 pub use tops_raw as driv;
-use uhal::memory::{DeviceSliceTrait, DevicePointerTrait};
+use uhal::memory::DevicePointerTrait;
 // use uhal::stream::{Stream};
-use uhal::error::{DeviceResult};
-pub use cust_core::_hidden::{DeviceCopy};
+use uhal::error::DeviceResult;
+pub use cust_core::_hidden::DeviceCopy;
 use uhal::stream::StreamTrait;
-use std::ops::{Deref, DerefMut};
-use driv::{topsStream_t, topsMemcpyKind};
+// use std::ops::{Deref, DerefMut};
+use driv::topsMemcpyKind;
 #[cfg(feature = "bytemuck")]
 use bytemuck::{Pod, Zeroable};
-use std::mem::{self, size_of};
+// use std::mem::{self, size_of};
+use std::mem;
 use std::ops::{Range, RangeFrom, RangeFull, RangeInclusive, RangeTo, RangeToInclusive};
 use std::os::raw::c_void;
 
@@ -598,54 +599,6 @@ impl<T: DeviceCopy> TopsDeviceSlice<T> {
     }
 }
 
-use ::core::ptr;
-use ::std::alloc; // or extern crate alloc; use ::alloc::alloc;
-
-fn alighed_alloc (numbytes: usize, alignment: usize)
-  -> Option<ptr::NonNull<()>>
-{Some({
-    if numbytes == 0 { return None; }
-    let layout =
-        alloc::Layout::from_size_align(numbytes, alignment)
-            .map_err(|err| eprintln!("Layout error: {}", err))
-            .ok()?
-    ;
-    ptr::NonNull::new(unsafe {
-        // # Safety
-        //
-        //   - numbytes != 0
-        alloc::alloc(layout)
-    })?
-        .cast::<()>()
-})}
-
-/// # Safety
-///
-///   - `ptr`, when `NonNull`, must be a value returned by `alloc(numbytes, alignment)`
-// #[require_unsafe_in_body] // or #[allow(unused_unsafe)]
-unsafe
-fn alighed_free (
-    ptr: Option<ptr::NonNull::<()>>,
-    numbytes: usize,
-    alignment: usize,
-)
-{
-    let ptr = if let Some(ptr) = ptr { ptr } else { return; };
-    let layout =
-        alloc::Layout::from_size_align(numbytes, alignment)
-            .unwrap_or_else(|err| {
-                // if same layout as input this should not happen,
-                // so it is a very bad bug if this is reached
-                panic!("Layout error: {}", err);
-            })
-    ;
-    unsafe {
-        // # Safety
-        //
-        //   - `ptr` came from alloc::alloc(layout);
-        alloc::dealloc(ptr.cast::<u8>().as_ptr(), layout);
-    }
-}
 
 //Tops Implementation
 // impl<T: DeviceCopy> crate::memory::private::Sealed for TopsDeviceSlice<T> {}

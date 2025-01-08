@@ -57,6 +57,10 @@
 // pub use crate::uhal::*;
 
 // use context::TopsContext;
+#![allow(non_snake_case)]
+#![allow(non_camel_case_types)]
+#![allow(nonstandard_style)]
+#![allow(unused_imports)]
 use device::TopsDevice;
 // #![cfg_attr(docsrs, feature(doc_cfg))]
 pub use tops_raw as driv;
@@ -67,23 +71,23 @@ pub mod event;
 pub mod function;
 // WIP
 // pub mod context;
-#[allow(warnings)]
 pub mod memory;
 pub mod module;
 pub mod prelude;
 pub mod stream;
+#[cfg(feature = "eccl")]
+pub use eccl_raw as driv_eccl;
 
 use uhal::device::DeviceTrait;
 
 use uhal::{Flags, DriverLibraryTrait};
-use uhal::error::{DeviceResult};
+use uhal::error::DeviceResult;
 // use uhal::context::{ContextFlags, ContextTrait};
 use error::ToResult;
 
 /// Struct representing the API version number.
 #[derive(Debug, Hash, Eq, PartialEq, Ord, PartialOrd, Copy, Clone)]
 pub struct TopsApi(i32);
-
 
 impl DriverLibraryTrait for TopsApi {
     // type ContextT = TopsContext;

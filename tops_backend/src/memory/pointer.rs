@@ -3,11 +3,11 @@ use core::{
     hash::Hash,
     ptr,
 };
-use std::{ffi::c_void, os::raw::c_ulonglong};
+use std::ffi::c_void;
 use std::marker::PhantomData;
 use std::mem::size_of;
-use uhal::memory::{DevicePointerTrait};
-pub use cust_core::_hidden::{DeviceCopy};
+use uhal::memory::DevicePointerTrait;
+pub use cust_core::_hidden::DeviceCopy;
 pub use tops_raw as driv;
 use driv::topsDeviceptr_t;
 
@@ -144,7 +144,7 @@ impl<T: DeviceCopy> DevicePointerTrait<T> for TopsDevicePointer<T>{
     where
         T: Sized
     {
-        let mut ptr = self.ptr as u64 + (count as usize * size_of::<T>()) as u64;
+        let ptr = self.ptr as u64 + (count as usize * size_of::<T>()) as u64;
         Self {
             ptr : ptr as *mut c_void,
             marker: PhantomData,

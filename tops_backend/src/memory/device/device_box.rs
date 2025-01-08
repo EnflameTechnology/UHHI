@@ -1,17 +1,16 @@
 pub use tops_raw as driv;
 use driv::topsDeviceptr_t;
-use uhal::memory::{DeviceBoxTrait, DevicePointerTrait, MemoryTrait};
+use uhal::memory::{DeviceBoxTrait, DevicePointerTrait};
 use uhal::error::{DeviceResult, DropResult};
 // use uhal::stream::{Stream};
 
-pub use cust_core::_hidden::{DeviceCopy};
+pub use cust_core::_hidden::DeviceCopy;
 use uhal::stream::StreamTrait;
 use crate::error::ToResult;
 use std::fmt::{self, Pointer};
 use std::mem::{self, ManuallyDrop};
 
 use std::os::raw::c_void;
-use crate::driv::{topsStream_t};
 use crate::memory::{TopsDevicePointer, TopsMemory};
 use crate::stream::TopsStream;
 

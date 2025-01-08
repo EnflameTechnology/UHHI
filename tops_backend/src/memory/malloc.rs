@@ -2,12 +2,12 @@ use std::mem;
 use std::os::raw::c_void;
 use std::ptr;
 pub use tops_raw as driv;
-use uhal::memory::{MemoryTrait, DevicePointerTrait};
+use uhal::memory::DevicePointerTrait;
 
-use uhal::error::{DeviceResult};
-pub use cust_core::_hidden::{DeviceCopy};
-pub use driv::{topsStream_t};
-use uhal::error::{DeviceError};
+use uhal::error::DeviceResult;
+pub use cust_core::_hidden::DeviceCopy;
+pub use driv::topsStream_t;
+use uhal::error::DeviceError;
 use uhal::stream::StreamTrait;
 
 use crate::stream::TopsStream;

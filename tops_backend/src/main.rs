@@ -1,3 +1,7 @@
+#![allow(non_snake_case)]
+#![allow(non_camel_case_types)]
+#![allow(nonstandard_style)]
+#![warn(unused_imports)]
 use tops_backend as tops;
 
 use uhal::{DriverLibraryTrait};
@@ -72,12 +76,12 @@ fn legacy() -> DeviceResult<()>{
     struct Params {
         a_ : driv::topsDeviceptr_t,
         b_ : driv::topsDeviceptr_t,
-        N: usize
+        N: u64
     }
     
-    const N:usize = 10000;
+    const N: usize = 10000;
     let val = vec![0.5f32; N];
-    const Nbytes:usize = N * 4;
+    const Nbytes: u64 = (N * 4) as u64;
 
     let mut host_ptr = std::ptr::null_mut();
     let mut device_ptr = ptr::null_mut();
@@ -87,7 +91,7 @@ fn legacy() -> DeviceResult<()>{
     unsafe {
         println!("info: copy Host2Device\n");
         driv::topsHostMalloc(&mut host_ptr as *mut *mut c_void, Nbytes, 0);
-        std::ptr::copy(val.as_ptr() as *mut c_void, host_ptr, Nbytes);
+        std::ptr::copy(val.as_ptr() as *mut c_void, host_ptr, Nbytes as usize);
         
         driv::topsMalloc(&mut device_ptr as *mut *mut c_void, Nbytes);
         driv::topsMalloc(&mut device_ptr_dst as *mut *mut c_void, Nbytes);
@@ -151,8 +155,8 @@ fn legacy() -> DeviceResult<()>{
     let mut out_host2 = vec![0.0f32; N];
 
     unsafe {
-        std::ptr::copy(host_ptr_out, out_host.as_mut_ptr() as *mut c_void, Nbytes);
-        std::ptr::copy(host_ptr_out2, out_host2.as_mut_ptr()  as *mut c_void, Nbytes);
+        std::ptr::copy(host_ptr_out, out_host.as_mut_ptr() as *mut c_void, Nbytes as usize);
+        std::ptr::copy(host_ptr_out2, out_host2.as_mut_ptr()  as *mut c_void, Nbytes as usize);
 
     }
 
@@ -366,7 +370,7 @@ fn test() -> DeviceResult<()> {
     const M : usize = 2;
     const N : usize = 3;
 
-    const Nbytes : usize = M * N * 4;
+    const Nbytes : u64 = (M * N * 4) as u64;
     let matA = TopsDeviceBuffer::from_slice(&[1.0f32, 2.0f32, 3.0f32, 4.0f32, 5.0f32, 6.0f32, 1.0f32, 2.0f32, 3.0f32, 4.0f32])?;
     let matB = TopsDeviceBuffer::from_slice(&[1.0f32, 2.0f32, 3.0f32, 4.0f32, 5.0f32, 1.0f32, 2.0f32, 3.0f32, 4.0f32, 5.0f32, 1.0f32, 2.0f32, 3.0f32, 4.0f32, 5.0f32])?;
     let matOut = TopsDeviceBuffer::from_slice(&[0.0f32; M * N])?;
@@ -404,7 +408,7 @@ fn test() -> DeviceResult<()> {
     unsafe {
         driv::topsHostMalloc(&mut host_ptr as *mut *mut c_void, Nbytes, 0);
         driv::topsMemcpy(host_ptr, matOut.as_device_ptr().as_raw(), Nbytes, driv::topsMemcpyKind::topsMemcpyDeviceToHost);
-        std::ptr::copy(host_ptr, out_host.as_mut_ptr() as *mut c_void, Nbytes);
+        std::ptr::copy(host_ptr, out_host.as_mut_ptr() as *mut c_void, Nbytes as usize);
         println!("\n\nResults of forward pass******************");
         for x in 0..M {
             for y in 0..N {

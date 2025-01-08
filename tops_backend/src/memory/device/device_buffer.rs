@@ -1,20 +1,19 @@
 pub use tops_raw as driv;
 use driv::topsStream_t;
-use uhal::memory::{DeviceBufferTrait, MemoryTrait, DevicePointerTrait, DeviceBufferTraitEx};
+use uhal::memory::{DeviceBufferTrait, DevicePointerTrait, DeviceBufferTraitEx};
 use uhal::error::{DeviceResult, DropResult};
 
-pub use cust_core::_hidden::{DeviceCopy};
+pub use cust_core::_hidden::DeviceCopy;
 use uhal::stream::StreamTrait;
-use std::any::Any;
 use std::ops::{Deref, DerefMut};
 use crate::error::ToResult;
 #[cfg(feature = "bytemuck")]
 pub use bytemuck;
 #[cfg(feature = "bytemuck")]
 use bytemuck::{Pod, PodCastError, Zeroable};
-use std::mem::{self, align_of, size_of, transmute, ManuallyDrop};
+use std::mem::{self, size_of, ManuallyDrop};
 
-use crate::memory::{TopsDevicePointer, TopsMemCpy, TopsMemory};
+use crate::memory::{TopsDevicePointer, TopsMemory};
 use crate::stream::TopsStream;
 
 use super::{TopsDeviceSlice, CopyDestination, AsyncCopyDestination};
@@ -231,8 +230,7 @@ impl<T: DeviceCopy> DeviceBufferTrait<T> for TopsDeviceBuffer<T> {
     ///     },
     /// }
     /// ```
-    fn manual_drop(mut dev_buf: &mut Self::DeviceBufferT) -> DropResult<Self::DeviceBufferT>
-    {
+    fn manual_drop(dev_buf: &mut Self::DeviceBufferT) -> DropResult<Self::DeviceBufferT> {
         if dev_buf.buf.is_null() {
             return Ok(());
         }
@@ -243,7 +241,7 @@ impl<T: DeviceCopy> DeviceBufferTrait<T> for TopsDeviceBuffer<T> {
             unsafe {
                 match TopsMemory::free(ptr) {
                     Ok(()) => {
-                        mem::forget(dev_buf);
+                        mem::forget(dev_buf.to_owned());
                         // let size = capacity * size_of::<T>();
                         // GCU_MEM_USED -= size;
                         // if GCU_MEM_USED/1024/1024/1024 != (GCU_MEM_USED+size)/1024/1024/1024 {
@@ -335,24 +333,24 @@ impl<T: DeviceCopy> Drop for TopsDeviceBuffer<T> {
             return;
         }
         if self.len > 0 && size_of::<T>() > 0 {
-            let capacity = self.len;
+            // let capacity = self.len;
             let ptr = mem::replace(&mut self.buf, TopsDevicePointer::null());
             unsafe {
                 match self.stream {
                     Some(stream_) => {
                         match driv::topsFreeAsync(ptr.as_raw(), stream_).to_result() {
                             Ok(()) => {
-                                mem::forget(self);
+                                mem::forget(self.to_owned());
                             }
-                            Err(e) => {panic!("Unable to drop device buffer!");}
+                            _ => { panic!("Unable to drop device buffer!"); }
                         }
                     },
                     _ => {
                         match TopsMemory::free(ptr) {
                             Ok(()) => {
-                                mem::forget(self);
+                                mem::forget(self.to_owned());
                             }
-                            Err(e) => {panic!("Unable to drop device buffer!");}
+                            _ => { panic!("Unable to drop device buffer!"); }
                         }
                     }
                 }

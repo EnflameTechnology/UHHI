@@ -84,12 +84,12 @@ impl MemCpyTrait for CuMemCpy {
     /// Returns in `.0` the amount of memory on the device that is free according to
     /// the OS. Device is not guaranteed to be able to allocate all of the memory that
     /// the OS reports as free.
-    fn mem_get_info() -> DeviceResult<(usize, usize)> {
+    fn mem_get_info() -> DeviceResult<(u64, u64)> {
         let mut mem_free = 0;
         let mut mem_total = 0;
         unsafe {
             driv::cuMemGetInfo_v2(&mut mem_free, &mut mem_total).to_result()?;
         }
-        Ok((mem_free, mem_total))
+        Ok((mem_free as u64, mem_total as u64))
     }
 }

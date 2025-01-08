@@ -66,11 +66,11 @@ impl DeviceTrait for CuDevice {
     }
 
     /// Returns the total amount of memory available on the device in bytes.
-    fn total_memory(self) -> DeviceResult<usize> {
+    fn total_memory(self) -> DeviceResult<u64> {
         unsafe {
-            let mut memory = 0;
+            let mut memory: usize = 0;
             driv::cuDeviceTotalMem_v2(&mut memory as *mut usize, self.0).to_result()?;
-            Ok(memory)
+            Ok(memory as u64)
         }
     }
 

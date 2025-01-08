@@ -175,6 +175,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "eccl_raw"
+version = "0.1.1"
+dependencies = [
+ "libloading",
+]
+
+[[package]]
 name = "either"
 version = "1.8.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -264,6 +271,16 @@ name = "libc"
 version = "0.2.132"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8371e4e5341c3a96db127eb2465ac681ced4c433e01dd0e938adbef26ba93ba5"
+
+[[package]]
+name = "libloading"
+version = "0.8.6"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "fc2f4eb4bc735547cfed7c0a4922cbd04a4655978c09b54f1f7b228750664c34"
+dependencies = [
+ "cfg-if",
+ "windows-targets",
+]
 
 [[package]]
 name = "libm"
@@ -489,7 +506,9 @@ dependencies = [
  "bytemuck",
  "cust_core",
  "cust_derive",
+ "eccl_raw",
  "glam",
+ "libloading",
  "mint",
  "num-complex",
  "tops_raw",
