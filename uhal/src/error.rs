@@ -98,12 +98,12 @@ impl fmt::Display for DeviceError {
                 // let value = other as u32;
                 // let mut ptr: *const c_char = ptr::null();
                 // unsafe {
-                    
-                    // driv::cuGetErrorString(mem::transmute(value), &mut ptr as *mut *const c_char)
-                    //     .to_result()
-                    //     .map_err(|_| fmt::Error)?;
-                    // let cstr = CStr::from_ptr(ptr);
-                    write!(f, "{:?}", other)
+
+                // driv::cuGetErrorString(mem::transmute(value), &mut ptr as *mut *const c_char)
+                //     .to_result()
+                //     .map_err(|_| fmt::Error)?;
+                // let cstr = CStr::from_ptr(ptr);
+                write!(f, "{:?}", other)
                 // }
             }
             // This shouldn't happen

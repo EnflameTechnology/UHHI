@@ -1,11 +1,11 @@
-use uhal::memory::{DeviceVariableTrait, DeviceBoxTrait};
-use uhal::error::{DeviceResult};
-pub use cust_core::_hidden::{DeviceCopy};
+pub use cust_core::_hidden::DeviceCopy;
 use std::ops::{Deref, DerefMut};
+use uhal::error::DeviceResult;
+use uhal::memory::{DeviceBoxTrait, DeviceVariableTrait};
 
 use crate::memory::TopsDevicePointer;
 
-use super::{TopsDeviceBox, CopyDestination};
+use super::{CopyDestination, TopsDeviceBox};
 /// Wrapper around a variable on the host and a [`DeviceBox`] holding the
 /// variable on the device, allowing for easy synchronization and storage.
 #[derive(Debug)]

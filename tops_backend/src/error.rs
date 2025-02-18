@@ -8,8 +8,8 @@
 //! errors related to previous asynchronous launches.
 pub use tops_raw as driv;
 
-use driv::{topsError_t};
-use uhal::error::{DeviceResult, DeviceError};
+use driv::topsError_t;
+use uhal::error::{DeviceError, DeviceResult};
 
 pub trait ToResult {
     fn to_result(self) -> DeviceResult<()>;
@@ -38,9 +38,7 @@ impl ToResult for topsError_t {
             topsError_t::topsErrorInvalidDevice => Err(DeviceError::InvalidDevice),
             topsError_t::topsErrorInvalidImage => Err(DeviceError::InvalidImage),
             topsError_t::topsErrorInvalidContext => Err(DeviceError::InvalidContext),
-            topsError_t::topsErrorContextAlreadyCurrent => {
-                Err(DeviceError::ContextAlreadyCurrent)
-            }
+            topsError_t::topsErrorContextAlreadyCurrent => Err(DeviceError::ContextAlreadyCurrent),
             topsError_t::topsErrorMapFailed => Err(DeviceError::MapFailed),
             topsError_t::topsErrorUnmapFailed => Err(DeviceError::UnmapFailed),
             topsError_t::topsErrorArrayIsMapped => Err(DeviceError::ArrayIsMapped),
@@ -52,12 +50,8 @@ impl ToResult for topsError_t {
             topsError_t::topsErrorNotMappedAsPointer => Err(DeviceError::NotMappedAsPointer),
             topsError_t::topsErrorECCNotCorrectable => Err(DeviceError::EccUncorrectable),
             topsError_t::topsErrorUnsupportedLimit => Err(DeviceError::UnsupportedLimit),
-            topsError_t::topsErrorContextAlreadyInUse => {
-                Err(DeviceError::ContextAlreadyInUse)
-            }
-            topsError_t::topsErrorPeerAccessUnsupported => {
-                Err(DeviceError::PeerAccessUnsupported)
-            }
+            topsError_t::topsErrorContextAlreadyInUse => Err(DeviceError::ContextAlreadyInUse),
+            topsError_t::topsErrorPeerAccessUnsupported => Err(DeviceError::PeerAccessUnsupported),
             topsError_t::topsErrorInvalidKernelFile => Err(DeviceError::InvalidPtx),
             topsError_t::topsErrorInvalidGraphicsContext => {
                 Err(DeviceError::InvalidGraphicsContext)
@@ -77,9 +71,7 @@ impl ToResult for topsError_t {
             topsError_t::topsErrorNotFound => Err(DeviceError::NotFound),
             topsError_t::topsErrorNotReady => Err(DeviceError::NotReady),
             topsError_t::topsErrorIllegalAddress => Err(DeviceError::IllegalAddress),
-            topsError_t::topsErrorLaunchOutOfResources => {
-                Err(DeviceError::LaunchOutOfResources)
-            }
+            topsError_t::topsErrorLaunchOutOfResources => Err(DeviceError::LaunchOutOfResources),
             topsError_t::topsErrorLaunchTimeOut => Err(DeviceError::LaunchTimeout),
             // topsError_t::CUDA_ERROR_LAUNCH_INCOMPATIBLE_TEXTURING => {
             //     Err(DeviceError::LaunchIncompatibleTexturing)
@@ -87,9 +79,7 @@ impl ToResult for topsError_t {
             topsError_t::topsErrorPeerAccessAlreadyEnabled => {
                 Err(DeviceError::PeerAccessAlreadyEnabled)
             }
-            topsError_t::topsErrorPeerAccessNotEnabled => {
-                Err(DeviceError::PeerAccessNotEnabled)
-            }
+            topsError_t::topsErrorPeerAccessNotEnabled => Err(DeviceError::PeerAccessNotEnabled),
             // topsError_t::CUDA_ERROR_PRIMARY_CONTEXT_ACTIVE => {
             //     Err(DeviceError::PrimaryContextActive)
             // }
@@ -143,7 +133,3 @@ impl ToResult for topsError_t {
 // topsErrorRuntimeMemory = 1052,
 // topsErrorRuntimeOther = 1053,
 // topsErrorTbd = 1054,
-
-
-
-

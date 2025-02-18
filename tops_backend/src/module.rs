@@ -1,12 +1,12 @@
 //! Functions and types for working with Device modules.
-pub use tops_raw as driv;
-pub use cust_core::_hidden::{DeviceCopy};
+pub use cust_core::_hidden::DeviceCopy;
 pub use driv::{topsJitOption, topsModule_t};
+pub use tops_raw as driv;
 
+use uhal::error::{DeviceResult, DropResult};
 use uhal::function::FunctionTrait;
 use uhal::memory::DevicePointerTrait;
 use uhal::module::{ModuleJitOption, ModuleTrait};
-use uhal::error::{DeviceResult, DropResult};
 
 use std::ffi::{c_void, CStr, CString};
 use std::fmt;
@@ -16,11 +16,11 @@ use std::os::raw::c_uint;
 use std::path::Path;
 use std::ptr;
 
-use crate::function::TopsFunction;
-use crate::memory::{TopsDevicePointer, CopyDestination};
 use crate::error::ToResult;
+use crate::function::TopsFunction;
+use crate::memory::{CopyDestination, TopsDevicePointer};
 
-pub struct TopsModuleJitOption{}
+pub struct TopsModuleJitOption {}
 #[derive(Debug)]
 pub struct TopsModule(topsModule_t);
 
@@ -53,7 +53,6 @@ impl TopsModuleJitOption {
 
         for opt in opts {
             match opt {
-                
                 ModuleJitOption::MaxRegisters(regs) => {
                     raw_opts.push(topsJitOption::topsJitOptionMaxRegisters);
                     raw_vals.push(*regs as usize as *mut c_void);
@@ -81,21 +80,17 @@ impl TopsModuleJitOption {
                     raw_opts.push(topsJitOption::topsJitOptionGenerateLineInfo);
                     raw_vals.push(*gen as usize as *mut c_void)
                 }
-                _ => {
-
-                }
+                _ => {}
             }
         }
         (raw_opts, raw_vals)
     }
 }
 
-
 pub struct TopsSymbol<'a, T: DeviceCopy> {
     pub ptr: TopsDevicePointer<T>,
     pub module: PhantomData<&'a topsModule_t>,
 }
-
 
 impl ModuleTrait for TopsModule {
     type ModuleT = TopsModule;
@@ -105,15 +100,13 @@ impl ModuleTrait for TopsModule {
     ///
     /// The given path should be either a cubin file, a ptx file, or a fatbin file such as
     /// those produced by `nvcc`.
-    fn from_file<P: AsRef<Path>>(path: P) -> DeviceResult<Self::ModuleT>{
+    fn from_file<P: AsRef<Path>>(path: P) -> DeviceResult<Self::ModuleT> {
         unsafe {
             let mut bytes = path_to_bytes(path);
             if !bytes.contains(&0) {
                 bytes.push(0);
             }
-            let mut module = TopsModule {
-                0: ptr::null_mut(),
-            };
+            let mut module = TopsModule { 0: ptr::null_mut() };
             driv::topsModuleLoad(
                 &mut module.0 as *mut topsModule_t,
                 bytes.as_ptr() as *const _,
@@ -127,10 +120,10 @@ impl ModuleTrait for TopsModule {
     ///
     /// Fatbinary files are files that contain multiple ptx or cubin files. The driver will choose already-built
     /// cubin if it is present, and otherwise JIT compile any PTX in the file to cubin.
-    fn from_fatbin<G: AsRef<[u8]>>( 
+    fn from_fatbin<G: AsRef<[u8]>>(
         bytes: G,
         options: &[ModuleJitOption],
-    ) -> DeviceResult<Self::ModuleT>{
+    ) -> DeviceResult<Self::ModuleT> {
         // fatbins can be loaded just like cubins, we just use different methods so it's explicit.
         // please don't use from_cubin for fatbins, that is pure chaos and ferris will come to your house
         Self::from_cubin(bytes, options)
@@ -141,7 +134,10 @@ impl ModuleTrait for TopsModule {
     /// Cubins are architecture/compute-capability specific files generated as the final step of the Device compilation
     /// process. They cannot be interchanged across compute capabilities unlike PTX (to some degree). You can create one
     /// using the PTX compiler APIs, the cust [`Linker`](crate::link::Linker), or nvcc (`nvcc a.ptx --cubin -arch=sm_XX`).
-    fn from_cubin<G: AsRef<[u8]>>(bytes: G, options: &[ModuleJitOption]) -> DeviceResult<Self::ModuleT>{
+    fn from_cubin<G: AsRef<[u8]>>(
+        bytes: G,
+        options: &[ModuleJitOption],
+    ) -> DeviceResult<Self::ModuleT> {
         // it is very unclear whether cuda wants or doesn't want a null terminator. The method works
         // whether you have one or not. So for safety we just add one. In theory you can figure out the
         // length of an ELF image without a null terminator. But the docs are confusing, so we add one just
@@ -152,10 +148,11 @@ impl ModuleTrait for TopsModule {
         unsafe { Self::load_module(bytes.as_ptr() as *const c_void, options) }
     }
 
-    unsafe fn load_module(image: *const c_void, options: &[ModuleJitOption]) -> DeviceResult<Self::ModuleT>{
-        let mut module = TopsModule {
-            0: ptr::null_mut(),
-        };
+    unsafe fn load_module(
+        image: *const c_void,
+        options: &[ModuleJitOption],
+    ) -> DeviceResult<Self::ModuleT> {
+        let mut module = TopsModule { 0: ptr::null_mut() };
         let (mut options, mut option_values) = TopsModuleJitOption::into_raw(options);
         driv::topsModuleLoadDataEx(
             &mut module.0 as *mut topsModule_t,
@@ -171,7 +168,7 @@ impl ModuleTrait for TopsModule {
     /// Creates a new module from a [`CStr`] pointing to PTX code.
     ///
     /// The driver will JIT the PTX into arch-specific cubin or pick already-cached cubin if available.
-    fn from_ptx_cstr(cstr: &CStr, options: &[ModuleJitOption]) -> DeviceResult<Self::ModuleT>{
+    fn from_ptx_cstr(cstr: &CStr, options: &[ModuleJitOption]) -> DeviceResult<Self::ModuleT> {
         // SAFETY: the image is known to be dereferenceable
         unsafe { Self::load_module(cstr.as_ptr() as *const c_void, options) }
     }
@@ -183,7 +180,10 @@ impl ModuleTrait for TopsModule {
     /// # Panics
     ///
     /// Panics if `string` contains a nul.
-    fn from_ptx<G: AsRef<str>>(string: G, options: &[ModuleJitOption]) -> DeviceResult<Self::ModuleT>{
+    fn from_ptx<G: AsRef<str>>(
+        string: G,
+        options: &[ModuleJitOption],
+    ) -> DeviceResult<Self::ModuleT> {
         let cstr = CString::new(string.as_ref())
             .expect("string given to Module::from_str contained nul bytes");
         Self::from_ptx_cstr(cstr.as_c_str(), options)
@@ -196,7 +196,7 @@ impl ModuleTrait for TopsModule {
     //     note = "from_str was too generic of a name, use from_ptx instead, passing an empty slice of options (usually)"
     // )]
     #[allow(clippy::should_implement_trait)]
-    fn from_str<G: AsRef<str>>(string: G) -> DeviceResult<Self::ModuleT>{
+    fn from_str<G: AsRef<str>>(string: G) -> DeviceResult<Self::ModuleT> {
         let cstr = CString::new(string.as_ref())
             .expect("string given to Module::from_str contained nul bytes");
         #[allow(deprecated)]
@@ -212,15 +212,13 @@ impl ModuleTrait for TopsModule {
     /// those produced by `nvcc`.
     // #[deprecated(
     //     since = "0.3.0",
-    //     note = "load_from_string was an inconsistent name with inconsistent params, use from_ptx/from_ptx_cstr, passing 
+    //     note = "load_from_string was an inconsistent name with inconsistent params, use from_ptx/from_ptx_cstr, passing
     // an empty slice of options (usually)
     // "
     // )]
-    fn load_from_string(image: &CStr) -> DeviceResult<Self::ModuleT>{
+    fn load_from_string(image: &CStr) -> DeviceResult<Self::ModuleT> {
         unsafe {
-            let mut module = TopsModule {
-                0: ptr::null_mut(),
-            };
+            let mut module = TopsModule { 0: ptr::null_mut() };
             driv::topsModuleLoadData(
                 &mut module.0 as *mut topsModule_t,
                 image.as_ptr() as *const c_void,
@@ -230,13 +228,11 @@ impl ModuleTrait for TopsModule {
         }
     }
 
- 
-
     /// Destroy a `Module`, returning an error.
     ///
     /// Destroying a module can return errors from previous asynchronous work. This function
     /// destroys the given module and returns the error and the un-destroyed module on failure.
-    fn drop(mut module: Self::ModuleT) -> DropResult<Self::ModuleT>{
+    fn drop(mut module: Self::ModuleT) -> DropResult<Self::ModuleT> {
         if module.0.is_null() {
             return Ok(());
         }
@@ -248,7 +244,7 @@ impl ModuleTrait for TopsModule {
                     let _ = mem::forget(module.0);
                     Ok(())
                 }
-                Err(e) => Err((e, TopsModule{ 0:inner })),
+                Err(e) => Err((e, TopsModule { 0: inner })),
             }
         }
     }
@@ -260,7 +256,7 @@ impl TopsModule {
     /// # Panics:
     ///
     /// This function panics if the size of the symbol is not the same as the `mem::sizeof<T>()`.
-    pub fn get_global<'a, T: DeviceCopy>(&'a self, name: &CStr) -> DeviceResult<TopsSymbol<'a, T>>{
+    pub fn get_global<'a, T: DeviceCopy>(&'a self, name: &CStr) -> DeviceResult<TopsSymbol<'a, T>> {
         unsafe {
             let mut ptr: TopsDevicePointer<T> = TopsDevicePointer::null();
             let mut size: u64 = 0;
@@ -281,7 +277,7 @@ impl TopsModule {
     }
 
     /// Get a reference to a kernel function which can then be launched.
-    pub fn get_function<'a, P: AsRef<str>>(&'a self, name: P) -> DeviceResult<TopsFunction>{
+    pub fn get_function<'a, P: AsRef<str>>(&'a self, name: P) -> DeviceResult<TopsFunction> {
         unsafe {
             let name = name.as_ref();
             let cstr = CString::new(name).expect("Argument to get_function had a nul");
@@ -323,8 +319,12 @@ impl<'a, T: DeviceCopy> CopyDestination<T> for TopsSymbol<'a, T> {
         let size = mem::size_of::<T>() as u64;
         if size != 0 {
             unsafe {
-                driv::topsMemcpyHtoD(self.ptr.as_raw(), val as *const T as *mut ::std::os::raw::c_void, size)
-                    .to_result()?
+                driv::topsMemcpyHtoD(
+                    self.ptr.as_raw(),
+                    val as *const T as *mut ::std::os::raw::c_void,
+                    size,
+                )
+                .to_result()?
             }
         }
         Ok(())
@@ -334,15 +334,10 @@ impl<'a, T: DeviceCopy> CopyDestination<T> for TopsSymbol<'a, T> {
         let size = mem::size_of::<T>() as u64;
         if size != 0 {
             unsafe {
-                driv::topsMemcpyDtoH(
-                    val as *const T as *mut c_void,
-                    self.ptr.as_raw(),
-                    size,
-                )
-                .to_result()?
+                driv::topsMemcpyDtoH(val as *const T as *mut c_void, self.ptr.as_raw(), size)
+                    .to_result()?
             }
         }
         Ok(())
     }
 }
-

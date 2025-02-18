@@ -3,12 +3,12 @@
 // use uhal::{DeviceResult, ToResult, Device, Devices, DeviceTrait, DeviceAttribute};
 pub use tops_raw as driv;
 
-use uhal::error::{DeviceResult};
-use uhal::device::{DeviceTrait, DeviceAttribute};
-use driv::{topsDevice_t};
+use crate::error::ToResult;
+use driv::topsDevice_t;
 use std::ffi::CStr;
 use std::ops::Range;
-use crate::error::ToResult;
+use uhal::device::{DeviceAttribute, DeviceTrait};
+use uhal::error::DeviceResult;
 
 /// Opaque handle to a Device device.
 #[derive(Debug, Clone, Copy, Hash, Eq, PartialEq)]
@@ -28,9 +28,8 @@ impl Iterator for TopsDevices {
     }
 }
 impl TopsDevice {
-    pub fn new(d : topsDevice_t) -> Self
-    {
-        TopsDevice {0 : d}
+    pub fn new(d: topsDevice_t) -> Self {
+        TopsDevice { 0: d }
     }
 }
 impl DeviceTrait for TopsDevice {
@@ -40,7 +39,7 @@ impl DeviceTrait for TopsDevice {
     /// Get the number of devices.
     /// Returns the number of devices with compute-capability 2.0 or greater which are available
     /// for execution.
-    fn num_devices() -> DeviceResult<u32>{
+    fn num_devices() -> DeviceResult<u32> {
         unsafe {
             let mut num_devices = 0i32;
             driv::topsGetDeviceCount(&mut num_devices as *mut i32).to_result()?;
@@ -50,29 +49,28 @@ impl DeviceTrait for TopsDevice {
 
     /// Get a handle to the `ordinal`'th device.
     /// Ordinal must be in the range `0..num_devices()`. If not, an error will be returned.
-    fn get_device(ordinal: u32) -> DeviceResult<Self::DeviceT>{
+    fn get_device(ordinal: u32) -> DeviceResult<Self::DeviceT> {
         unsafe {
             let mut device = Self::DeviceT { 0: 0 };
-            driv::topsDeviceGet(&mut device.0 as *mut Self::RawDeviceT, ordinal as i32).to_result()?;
+            driv::topsDeviceGet(&mut device.0 as *mut Self::RawDeviceT, ordinal as i32)
+                .to_result()?;
             Ok(device)
         }
     }
 
-    fn select_device(ordinal: u32) -> DeviceResult<()>{
-        unsafe {
-            driv::topsSetDevice(ordinal as i32).to_result()
-        }
+    fn select_device(ordinal: u32) -> DeviceResult<()> {
+        unsafe { driv::topsSetDevice(ordinal as i32).to_result() }
     }
 
     /// Return an iterator over all devices.
-    fn devices() -> DeviceResult<Self::DevicesT>{
+    fn devices() -> DeviceResult<Self::DevicesT> {
         TopsDevice::num_devices().map(|num_devices| Self::DevicesT {
             range: 0..num_devices,
         })
     }
 
     /// Returns the total amount of memory available on the device in bytes.
-    fn total_memory(self) -> DeviceResult<u64>{
+    fn total_memory(self) -> DeviceResult<u64> {
         unsafe {
             let mut memory = 0u64;
             driv::topsDeviceTotalMem(&mut memory as *mut u64, self.0).to_result()?;
@@ -81,7 +79,7 @@ impl DeviceTrait for TopsDevice {
     }
 
     /// Returns the name of this device.
-    fn name(self) -> DeviceResult<String>{
+    fn name(self) -> DeviceResult<String> {
         unsafe {
             let mut name = [0u8; 128]; // Hopefully this is big enough...
             driv::topsDeviceGetName(
@@ -101,14 +99,14 @@ impl DeviceTrait for TopsDevice {
     }
 
     /// Returns the UUID of this device.
-    fn uuid(self) -> DeviceResult<[u8; 16]>{
+    fn uuid(self) -> DeviceResult<[u8; 16]> {
         //TODO
-        let uuid:[u8; 16] = [0; 16];
+        let uuid: [u8; 16] = [0; 16];
         Ok(uuid)
     }
 
     /// Returns information about this device.
-    fn get_attribute(self, attr: DeviceAttribute) -> DeviceResult<i32>{
+    fn get_attribute(self, attr: DeviceAttribute) -> DeviceResult<i32> {
         unsafe {
             let mut val = 0i32;
             driv::topsDeviceGetAttribute(
@@ -127,11 +125,7 @@ impl DeviceTrait for TopsDevice {
     fn as_raw(&self) -> Self::RawDeviceT {
         self.0
     }
-
 }
-
-
-
 
 #[cfg(test)]
 mod test {

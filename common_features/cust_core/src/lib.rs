@@ -69,7 +69,7 @@ pub mod _hidden {
     /// # Safety
     ///
     /// The type being implemented must hold no references to CPU data.
-    pub unsafe trait DeviceCopy : Copy {
+    pub unsafe trait DeviceCopy: Copy {
         #[inline(always)]
         fn as_kernel_param(&self) -> *mut std::ffi::c_void {
             self as *const Self as *mut _
@@ -148,28 +148,51 @@ pub mod _hidden {
     }
 
     unsafe impl<
-        A: DeviceCopy,
-        B: DeviceCopy,
-        C: DeviceCopy,
-        D: DeviceCopy,
-        E: DeviceCopy,
-        F: DeviceCopy,
-        G: DeviceCopy,
-        H: DeviceCopy,
-        I: DeviceCopy,
-        J: DeviceCopy,
-        K: DeviceCopy,
-        L: DeviceCopy,
-        M: DeviceCopy,
-        N: DeviceCopy,
-        O: DeviceCopy,
-        P: DeviceCopy,
-        Q: DeviceCopy,
-        R: DeviceCopy,
-        S: DeviceCopy,
-        T: DeviceCopy,
-        U: DeviceCopy,
-        > DeviceCopy for (A, B, C, D, E, F, G, H, I, J, K,   L, M,  N,  O,  P,  Q,   R, S,  T,  U)
+            A: DeviceCopy,
+            B: DeviceCopy,
+            C: DeviceCopy,
+            D: DeviceCopy,
+            E: DeviceCopy,
+            F: DeviceCopy,
+            G: DeviceCopy,
+            H: DeviceCopy,
+            I: DeviceCopy,
+            J: DeviceCopy,
+            K: DeviceCopy,
+            L: DeviceCopy,
+            M: DeviceCopy,
+            N: DeviceCopy,
+            O: DeviceCopy,
+            P: DeviceCopy,
+            Q: DeviceCopy,
+            R: DeviceCopy,
+            S: DeviceCopy,
+            T: DeviceCopy,
+            U: DeviceCopy,
+        > DeviceCopy
+        for (
+            A,
+            B,
+            C,
+            D,
+            E,
+            F,
+            G,
+            H,
+            I,
+            J,
+            K,
+            L,
+            M,
+            N,
+            O,
+            P,
+            Q,
+            R,
+            S,
+            T,
+            U,
+        )
     {
     }
 
@@ -189,8 +212,8 @@ pub mod _hidden {
     }
 }
 
-    use half::f16;
     use half::bf16;
+    use half::f16;
 
     #[cfg(feature = "vek")]
     use vek::*;

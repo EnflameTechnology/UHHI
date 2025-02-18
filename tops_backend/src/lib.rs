@@ -80,8 +80,8 @@ pub use eccl_raw as driv_eccl;
 
 use uhal::device::DeviceTrait;
 
-use uhal::{Flags, DriverLibraryTrait};
 use uhal::error::DeviceResult;
+use uhal::{DriverLibraryTrait, Flags};
 // use uhal::context::{ContextFlags, ContextTrait};
 use error::ToResult;
 
@@ -112,8 +112,7 @@ impl DriverLibraryTrait for TopsApi {
     /// complex needs (multiple devices, custom flags, etc.) should use `init` and create their own
     /// context.
     #[must_use = "The Context must be kept alive or errors will be issued for any function that is run"]
-    fn quick_init(device_id: u32) -> DeviceResult<Self::ContextT>
-    {
+    fn quick_init(device_id: u32) -> DeviceResult<Self::ContextT> {
         TopsApi::init(Flags::empty())?;
         let num_devices = TopsDevice::num_devices().unwrap();
         if device_id < num_devices {
@@ -121,9 +120,9 @@ impl DriverLibraryTrait for TopsApi {
         }
         TopsDevice::get_device(device_id)
         // let ctx = TopsContext::new(device)?;
-        // ctx.set_flags(ContextFlags::SCHED_AUTO)?; //TODO 
+        // ctx.set_flags(ContextFlags::SCHED_AUTO)?; //TODO
         // Ok(ctx)
-    } 
+    }
 
     /// Returns the latest version supported by the driver.
     fn get_api_version(self) -> DeviceResult<Self::ApiVersionT> {

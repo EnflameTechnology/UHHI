@@ -306,7 +306,6 @@ impl<T: DeviceCopy> DeviceBufferTrait<T> for CuDeviceBuffer<T> {
     }
 }
 
-
 impl<T: DeviceCopy> Drop for CuDeviceBuffer<T> {
     fn drop(&mut self) {
         if self.buf.is_null() {
@@ -321,10 +320,12 @@ impl<T: DeviceCopy> Drop for CuDeviceBuffer<T> {
                         mem::forget(self);
                         let size = capacity * size_of::<T>();
                     }
-                    Err(e) => {panic!("Unable to drop device buffer!");}
+                    Err(e) => {
+                        panic!("Unable to drop device buffer!");
+                    }
                 }
             }
-        } 
+        }
     }
 }
 

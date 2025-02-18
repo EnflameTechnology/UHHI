@@ -1,22 +1,22 @@
 pub use tops_raw as driv;
 use uhal::memory::DevicePointerTrait;
 // use uhal::stream::{Stream};
-use uhal::error::DeviceResult;
 pub use cust_core::_hidden::DeviceCopy;
+use uhal::error::DeviceResult;
 use uhal::stream::StreamTrait;
 // use std::ops::{Deref, DerefMut};
-use driv::topsMemcpyKind;
 #[cfg(feature = "bytemuck")]
 use bytemuck::{Pod, Zeroable};
+use driv::topsMemcpyKind;
 // use std::mem::{self, size_of};
 use std::mem;
 use std::ops::{Range, RangeFrom, RangeFull, RangeInclusive, RangeTo, RangeToInclusive};
 use std::os::raw::c_void;
 
+use super::{AsyncCopyDestination, CopyDestination, TopsDeviceBuffer};
+use crate::error::ToResult;
 use crate::memory::TopsDevicePointer;
 use crate::stream::TopsStream;
-use crate::error::ToResult;
-use super::{TopsDeviceBuffer, CopyDestination, AsyncCopyDestination};
 
 /// Fixed-size device-side slice.
 #[derive(Debug, Copy, Clone)]
@@ -237,7 +237,7 @@ impl<T: DeviceCopy> TopsDeviceSlice<T> {
 }
 
 #[cfg(feature = "bytemuck")]
-impl<T: DeviceCopy + Pod> DeviceSliceTrait for TopsDeviceSlice<T>{
+impl<T: DeviceCopy + Pod> DeviceSliceTrait for TopsDeviceSlice<T> {
     type DevicePointerT = TopsDevicePointer<T>;
     type StreamT = TopsStream;
     // NOTE(RDambrosio016): async memsets kind of blur the line between safe and unsafe, the only
@@ -250,7 +250,7 @@ impl<T: DeviceCopy + Pod> DeviceSliceTrait for TopsDeviceSlice<T>{
     ///
     /// In total it will set `sizeof<T> * len` values of `value` contiguously.
     #[cfg_attr(docsrs, doc(cfg(feature = "bytemuck")))]
-    fn set_8(&mut self, value: u8) -> DeviceResult<()>{
+    fn set_8(&mut self, value: u8) -> DeviceResult<()> {
         if self.ptr.is_null() {
             return Ok(());
         }
@@ -271,7 +271,7 @@ impl<T: DeviceCopy + Pod> DeviceSliceTrait for TopsDeviceSlice<T>{
     /// This operation is async so it does not complete immediately, it uses stream-ordering semantics.
     /// Therefore you should not read/write from/to the memory range until the operation is complete.
     #[cfg_attr(docsrs, doc(cfg(feature = "bytemuck")))]
-    unsafe fn set_8_async(&mut self, value: u8, stream: &Self::StreamT) -> DeviceResult<()>{
+    unsafe fn set_8_async(&mut self, value: u8, stream: &Self::StreamT) -> DeviceResult<()> {
         if self.ptr.is_null() {
             return Ok(());
         }
@@ -295,7 +295,7 @@ impl<T: DeviceCopy + Pod> DeviceSliceTrait for TopsDeviceSlice<T>{
     /// - `(size_of::<T>() * self.len) % 2 != 0` (the data size is not a multiple of 2 bytes)
     #[track_caller]
     #[cfg_attr(docsrs, doc(cfg(feature = "bytemuck")))]
-    fn set_16(&mut self, value: u16) -> DeviceResult<()>{
+    fn set_16(&mut self, value: u16) -> DeviceResult<()> {
         if self.ptr.is_null() {
             return Ok(());
         }
@@ -329,7 +329,7 @@ impl<T: DeviceCopy + Pod> DeviceSliceTrait for TopsDeviceSlice<T>{
     /// Therefore you should not read/write from/to the memory range until the operation is complete.
     #[track_caller]
     #[cfg_attr(docsrs, doc(cfg(feature = "bytemuck")))]
-    unsafe fn set_16_async(&mut self, value: u16, stream: &Self::StreamT) -> DeviceResult<()>{
+    unsafe fn set_16_async(&mut self, value: u16, stream: &Self::StreamT) -> DeviceResult<()> {
         if self.ptr.is_null() {
             return Ok(());
         }
@@ -359,7 +359,7 @@ impl<T: DeviceCopy + Pod> DeviceSliceTrait for TopsDeviceSlice<T>{
     /// - `(size_of::<T>() * self.len) % 4 != 0` (the data size is not a multiple of 4 bytes)
     #[track_caller]
     #[cfg_attr(docsrs, doc(cfg(feature = "bytemuck")))]
-    fn set_32(&mut self, value: u32) -> DeviceResult<()>{
+    fn set_32(&mut self, value: u32) -> DeviceResult<()> {
         if self.ptr.is_null() {
             return Ok(());
         }
@@ -393,7 +393,7 @@ impl<T: DeviceCopy + Pod> DeviceSliceTrait for TopsDeviceSlice<T>{
     /// Therefore you should not read/write from/to the memory range until the operation is complete.
     #[track_caller]
     #[cfg_attr(docsrs, doc(cfg(feature = "bytemuck")))]
-    unsafe fn set_32_async(&mut self, value: u32, stream: &Self::StreamT) -> DeviceResult<()>{
+    unsafe fn set_32_async(&mut self, value: u32, stream: &Self::StreamT) -> DeviceResult<()> {
         if self.ptr.is_null() {
             return Ok(());
         }
@@ -417,7 +417,7 @@ impl<T: DeviceCopy + Zeroable + Pod> TopsDeviceSlice<T> {
     // type DevicePointerT = TopsDevicePointer<T>;
     // type StreamT = TopsStream;
     /// Sets this slice's data to zero.
-    fn set_zero(&mut self) -> DeviceResult<()>{
+    fn set_zero(&mut self) -> DeviceResult<()> {
         if self.ptr.is_null() {
             return Ok(());
         }
@@ -436,7 +436,7 @@ impl<T: DeviceCopy + Zeroable + Pod> TopsDeviceSlice<T> {
     ///
     /// This operation is async so it does not complete immediately, it uses stream-ordering semantics.
     /// Therefore you should not read/write from/to the memory range until the operation is complete.
-    unsafe fn set_zero_async(&mut self, stream: &TopsStream) -> DeviceResult<()>{
+    unsafe fn set_zero_async(&mut self, stream: &TopsStream) -> DeviceResult<()> {
         if self.ptr.is_null() {
             return Ok(());
         }
@@ -449,8 +449,6 @@ impl<T: DeviceCopy + Zeroable + Pod> TopsDeviceSlice<T> {
         erased.set_8_async(0, stream)
     }
 }
-
-
 
 #[inline(never)]
 #[cold]
@@ -512,7 +510,10 @@ impl<T: DeviceCopy> DeviceSliceIndex<T> for Range<usize> {
     // type DeviceSliceT = CuDeviceSlice<T>;
 
     unsafe fn get_unchecked(self, slice: &TopsDeviceSlice<T>) -> TopsDeviceSlice<T> {
-        TopsDeviceSlice::from_raw_parts(slice.as_device_ptr().add(self.start), self.end - self.start)
+        TopsDeviceSlice::from_raw_parts(
+            slice.as_device_ptr().add(self.start),
+            self.end - self.start,
+        )
     }
     fn index(self, slice: &TopsDeviceSlice<T>) -> TopsDeviceSlice<T> {
         if self.start > self.end {
@@ -599,7 +600,6 @@ impl<T: DeviceCopy> TopsDeviceSlice<T> {
     }
 }
 
-
 //Tops Implementation
 // impl<T: DeviceCopy> crate::memory::private::Sealed for TopsDeviceSlice<T> {}
 impl<T: DeviceCopy, I: AsRef<[T]> + AsMut<[T]> + ?Sized> CopyDestination<I> for TopsDeviceSlice<T> {
@@ -612,7 +612,7 @@ impl<T: DeviceCopy, I: AsRef<[T]> + AsMut<[T]> + ?Sized> CopyDestination<I> for 
         let size = (mem::size_of::<T>() * self.len()) as u64;
         if size != 0 {
             unsafe {
-                //Memcpy in tops is different from CUDA 
+                //Memcpy in tops is different from CUDA
                 //Use HostAlloc function in tops to create a buffer for data transfer
                 // if size % 4096 != 0 {
                 //     // let mut ptr = alighed_alloc(size, 4096).unwrap();
@@ -627,11 +627,11 @@ impl<T: DeviceCopy, I: AsRef<[T]> + AsMut<[T]> + ?Sized> CopyDestination<I> for 
                 //     driv::topsHostFree(ptr);
                 //     return ret;
                 // } else {
-                    return driv::topsMemcpyHtoD(self.ptr.as_raw(), val.as_ptr() as *mut c_void, size).to_result();
+                return driv::topsMemcpyHtoD(self.ptr.as_raw(), val.as_ptr() as *mut c_void, size)
+                    .to_result();
                 // }
                 // driv::topsDeviceSynchronize().to_result()?;;
                 // driv::topsHostFree(ptr);
-
             }
         }
         Ok(())
@@ -650,7 +650,7 @@ impl<T: DeviceCopy, I: AsRef<[T]> + AsMut<[T]> + ?Sized> CopyDestination<I> for 
                     val.as_mut_ptr() as *mut c_void,
                     self.as_device_ptr().as_raw(),
                     size,
-                    topsMemcpyKind::topsMemcpyDeviceToHost
+                    topsMemcpyKind::topsMemcpyDeviceToHost,
                 )
                 .to_result()?
             }
@@ -659,19 +659,24 @@ impl<T: DeviceCopy, I: AsRef<[T]> + AsMut<[T]> + ?Sized> CopyDestination<I> for 
     }
 }
 
-impl <T:DeviceCopy> TopsDeviceSlice<T> {
+impl<T: DeviceCopy> TopsDeviceSlice<T> {
     pub fn copy_from_pointer<M>(&mut self, pointer: *const M, length: usize) -> DeviceResult<()> {
         let size = mem::size_of::<M>() * length;
         if size != 0 {
             unsafe {
-                //Memcpy in tops is different from CUDA 
+                //Memcpy in tops is different from CUDA
                 //Use HostAlloc function in tops to create a buffer for data transfer
                 // let mut ptr = std::ptr::null_mut();
                 // driv::topsHostMalloc(&mut ptr as *mut *mut c_void, size, 0);
                 // std::ptr::copy(pointer as *mut c_void, ptr, size);
                 // driv::topsMemcpyHtoD(self.ptr.as_raw(), ptr as *mut c_void, size)
                 //     .to_result()?;
-                return driv::topsMemcpyHtoD(self.ptr.as_raw(), pointer as *mut c_void, size as u64).to_result();
+                return driv::topsMemcpyHtoD(
+                    self.ptr.as_raw(),
+                    pointer as *mut c_void,
+                    size as u64,
+                )
+                .to_result();
                 // if size % 4096 != 0 {
                 //     let mut ptr = alighed_alloc(size, 4096).unwrap();
                 //     std::ptr::copy(pointer as *mut c_void, ptr.as_ptr() as *mut c_void, size);
@@ -684,7 +689,6 @@ impl <T:DeviceCopy> TopsDeviceSlice<T> {
                 // }
 
                 // driv::topsHostFree(ptr);
-
             }
         }
         Ok(())
@@ -782,7 +786,11 @@ impl<T: DeviceCopy, I: AsRef<[T]> + AsMut<[T]> + ?Sized> AsyncCopyDestination<I>
 impl<T: DeviceCopy> AsyncCopyDestination<TopsDeviceSlice<T>> for TopsDeviceSlice<T> {
     type StreamT = TopsStream;
 
-    unsafe fn async_copy_from(&mut self, val: &TopsDeviceSlice<T>, stream: &Self::StreamT) -> DeviceResult<()> {
+    unsafe fn async_copy_from(
+        &mut self,
+        val: &TopsDeviceSlice<T>,
+        stream: &Self::StreamT,
+    ) -> DeviceResult<()> {
         assert!(
             self.len() == val.len(),
             "destination and source slices have different lengths"
@@ -800,7 +808,11 @@ impl<T: DeviceCopy> AsyncCopyDestination<TopsDeviceSlice<T>> for TopsDeviceSlice
         Ok(())
     }
 
-    unsafe fn async_copy_to(&self, val: &mut TopsDeviceSlice<T>, stream: &Self::StreamT) -> DeviceResult<()> {
+    unsafe fn async_copy_to(
+        &self,
+        val: &mut TopsDeviceSlice<T>,
+        stream: &Self::StreamT,
+    ) -> DeviceResult<()> {
         assert!(
             self.len() == val.len(),
             "destination and source slices have different lengths"
@@ -822,11 +834,19 @@ impl<T: DeviceCopy> AsyncCopyDestination<TopsDeviceSlice<T>> for TopsDeviceSlice
 impl<T: DeviceCopy> AsyncCopyDestination<TopsDeviceBuffer<T>> for TopsDeviceSlice<T> {
     type StreamT = TopsStream;
 
-    unsafe fn async_copy_from(&mut self, val: &TopsDeviceBuffer<T>, stream: &Self::StreamT) -> DeviceResult<()> {
+    unsafe fn async_copy_from(
+        &mut self,
+        val: &TopsDeviceBuffer<T>,
+        stream: &Self::StreamT,
+    ) -> DeviceResult<()> {
         self.async_copy_from(val as &TopsDeviceSlice<T>, stream)
     }
 
-    unsafe fn async_copy_to(&self, val: &mut TopsDeviceBuffer<T>, stream: &Self::StreamT) -> DeviceResult<()> {
+    unsafe fn async_copy_to(
+        &self,
+        val: &mut TopsDeviceBuffer<T>,
+        stream: &Self::StreamT,
+    ) -> DeviceResult<()> {
         self.async_copy_to(val as &mut TopsDeviceSlice<T>, stream)
     }
 }

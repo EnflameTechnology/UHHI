@@ -10,16 +10,14 @@ pub use self::device_buffer::*;
 pub use self::device_slice::*;
 pub use self::device_variable::*;
 
-
 pub mod private {
 
-    use crate::memory::{TopsDeviceBuffer, TopsDeviceBox, TopsDeviceSlice};
-    use cust_core::_hidden::{DeviceCopy};
+    use crate::memory::{TopsDeviceBox, TopsDeviceBuffer, TopsDeviceSlice};
+    use cust_core::_hidden::DeviceCopy;
     pub trait Sealed {}
     impl<T: DeviceCopy> Sealed for TopsDeviceBuffer<T> {}
     impl<T: DeviceCopy> Sealed for TopsDeviceBox<T> {}
     impl<T: DeviceCopy> Sealed for TopsDeviceSlice<T> {}
-
 }
 
 /// Sealed trait implemented by types which can be the source or destination when copying data

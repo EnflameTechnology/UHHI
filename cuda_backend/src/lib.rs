@@ -108,7 +108,7 @@ impl DriverLibraryTrait for CuApi {
     /// complex needs (multiple devices, custom flags, etc.) should use `init` and create their own
     /// context.
     #[must_use = "The Context must be kept alive or errors will be issued for any function that is run"]
-    fn quick_init(device_id : u32) -> DeviceResult<Self::ContextT> {
+    fn quick_init(device_id: u32) -> DeviceResult<Self::ContextT> {
         CuApi::init(Flags::empty())?;
         let device = CuDevice::get_device(device_id).unwrap();
         let ctx = CuContext::new(device)?;

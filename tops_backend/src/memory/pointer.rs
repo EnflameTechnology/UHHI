@@ -3,13 +3,13 @@ use core::{
     hash::Hash,
     ptr,
 };
+pub use cust_core::_hidden::DeviceCopy;
+use driv::topsDeviceptr_t;
 use std::ffi::c_void;
 use std::marker::PhantomData;
 use std::mem::size_of;
-use uhal::memory::DevicePointerTrait;
-pub use cust_core::_hidden::DeviceCopy;
 pub use tops_raw as driv;
-use driv::topsDeviceptr_t;
+use uhal::memory::DevicePointerTrait;
 
 #[repr(transparent)]
 #[derive(Clone, Copy, Debug, PartialOrd, Ord, PartialEq, Eq, Hash)]
@@ -27,44 +27,38 @@ impl<T: DeviceCopy> Pointer for TopsDevicePointer<T> {
     }
 }
 
-impl<T: DeviceCopy> DevicePointerTrait<T> for TopsDevicePointer<T>{
+impl<T: DeviceCopy> DevicePointerTrait<T> for TopsDevicePointer<T> {
     type DevicePointerT = TopsDevicePointer<T>;
     type RawDevicePointerT = topsDeviceptr_t;
     /// Returns a rust [`pointer`] created from this pointer, meant for FFI purposes.
     /// **The pointer is not dereferenceable from the CPU!**
-    fn as_ptr(&self) -> *const T
-    {
+    fn as_ptr(&self) -> *const T {
         self.ptr as *const T
     }
 
     /// Returns a rust [`pointer`] created from this pointer, meant for FFI purposes.
     /// **The pointer is not dereferenceable from the CPU!**
-    fn as_mut_ptr(&self) -> *mut T
-    {
+    fn as_mut_ptr(&self) -> *mut T {
         self.ptr as *mut T
     }
 
     /// Returns the mutable CUdeviceptr.
-    fn as_mut(&mut self) -> &mut Self::RawDevicePointerT
-    {
+    fn as_mut(&mut self) -> &mut Self::RawDevicePointerT {
         &mut self.ptr
     }
 
     /// Returns the referenced CUdeviceptr.
-    fn as_ref(&self) -> &Self::RawDevicePointerT
-    {
+    fn as_ref(&self) -> &Self::RawDevicePointerT {
         &self.ptr
     }
 
     /// Returns the contained CUdeviceptr.
-    fn as_raw(&self) -> Self::RawDevicePointerT
-    {
+    fn as_raw(&self) -> Self::RawDevicePointerT {
         self.ptr
     }
 
     /// Create a DevicePointer from a raw Device pointer
-    fn from_raw(ptr: Self::RawDevicePointerT) -> Self
-    {
+    fn from_raw(ptr: Self::RawDevicePointerT) -> Self {
         Self {
             ptr,
             marker: PhantomData,
@@ -86,8 +80,7 @@ impl<T: DeviceCopy> DevicePointerTrait<T> for TopsDevicePointer<T>{
     ///     assert!(TopsDevicePointer::wrap(null).is_null());
     /// }
     /// ```
-    fn is_null(self) -> bool
-    {
+    fn is_null(self) -> bool {
         self.ptr == ptr::null_mut()
     }
 
@@ -96,7 +89,7 @@ impl<T: DeviceCopy> DevicePointerTrait<T> for TopsDevicePointer<T>{
     // TODO (AL): do we even want this?
     fn null() -> Self
     where
-        T: Sized
+        T: Sized,
     {
         Self {
             ptr: ptr::null_mut(),
@@ -142,11 +135,11 @@ impl<T: DeviceCopy> DevicePointerTrait<T> for TopsDevicePointer<T>{
     /// ```
     unsafe fn offset(self, count: isize) -> Self
     where
-        T: Sized
+        T: Sized,
     {
         let ptr = self.ptr as u64 + (count as usize * size_of::<T>()) as u64;
         Self {
-            ptr : ptr as *mut c_void,
+            ptr: ptr as *mut c_void,
             marker: PhantomData,
         }
     }
@@ -186,7 +179,7 @@ impl<T: DeviceCopy> DevicePointerTrait<T> for TopsDevicePointer<T>{
     /// ```
     fn wrapping_offset(self, count: isize) -> Self
     where
-        T: Sized
+        T: Sized,
     {
         let ptr = self
             .ptr
@@ -236,7 +229,7 @@ impl<T: DeviceCopy> DevicePointerTrait<T> for TopsDevicePointer<T>{
     #[allow(clippy::should_implement_trait)]
     unsafe fn add(self, count: usize) -> Self
     where
-        T: Sized
+        T: Sized,
     {
         self.offset(count as isize)
     }
@@ -280,7 +273,7 @@ impl<T: DeviceCopy> DevicePointerTrait<T> for TopsDevicePointer<T>{
     #[allow(clippy::should_implement_trait)]
     unsafe fn sub(self, count: usize) -> Self
     where
-        T: Sized
+        T: Sized,
     {
         self.offset((count as isize).wrapping_neg())
     }
@@ -315,7 +308,7 @@ impl<T: DeviceCopy> DevicePointerTrait<T> for TopsDevicePointer<T>{
     /// ```
     fn wrapping_add(self, count: usize) -> Self
     where
-        T: Sized
+        T: Sized,
     {
         self.wrapping_offset(count as isize)
     }
@@ -350,7 +343,7 @@ impl<T: DeviceCopy> DevicePointerTrait<T> for TopsDevicePointer<T>{
     /// ```
     fn wrapping_sub(self, count: usize) -> Self
     where
-        T: Sized
+        T: Sized,
     {
         self.wrapping_offset((count as isize).wrapping_neg())
     }
@@ -358,10 +351,7 @@ impl<T: DeviceCopy> DevicePointerTrait<T> for TopsDevicePointer<T>{
 
 impl<T: DeviceCopy> TopsDevicePointer<T> {
     /// Casts this device pointer to another type.
-    pub fn cast<U: DeviceCopy>(self) -> TopsDevicePointer<U>
-    {
+    pub fn cast<U: DeviceCopy>(self) -> TopsDevicePointer<U> {
         TopsDevicePointer::from_raw(self.ptr)
     }
 }
-
-

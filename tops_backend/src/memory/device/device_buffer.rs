@@ -1,22 +1,22 @@
-pub use tops_raw as driv;
 use driv::topsStream_t;
-use uhal::memory::{DeviceBufferTrait, DevicePointerTrait, DeviceBufferTraitEx};
+pub use tops_raw as driv;
 use uhal::error::{DeviceResult, DropResult};
+use uhal::memory::{DeviceBufferTrait, DeviceBufferTraitEx, DevicePointerTrait};
 
-pub use cust_core::_hidden::DeviceCopy;
-use uhal::stream::StreamTrait;
-use std::ops::{Deref, DerefMut};
 use crate::error::ToResult;
 #[cfg(feature = "bytemuck")]
 pub use bytemuck;
 #[cfg(feature = "bytemuck")]
 use bytemuck::{Pod, PodCastError, Zeroable};
+pub use cust_core::_hidden::DeviceCopy;
 use std::mem::{self, size_of, ManuallyDrop};
+use std::ops::{Deref, DerefMut};
+use uhal::stream::StreamTrait;
 
 use crate::memory::{TopsDevicePointer, TopsMemory};
 use crate::stream::TopsStream;
 
-use super::{TopsDeviceSlice, CopyDestination, AsyncCopyDestination};
+use super::{AsyncCopyDestination, CopyDestination, TopsDeviceSlice};
 
 /// Fixed-size device-side buffer. Provides basic access to device memory.
 #[derive(Debug, Clone)]
@@ -63,8 +63,7 @@ impl<T: DeviceCopy> DeviceBufferTrait<T> for TopsDeviceBuffer<T> {
     /// let mut buffer = unsafe { TopsDeviceBuffer::uninitialized(5).unwrap() };
     /// buffer.copy_from(&[0u64, 1, 2, 3, 4]).unwrap();
     /// ```
-    unsafe fn uninitialized(size: usize) -> DeviceResult<Self::DeviceBufferT>
-    {
+    unsafe fn uninitialized(size: usize) -> DeviceResult<Self::DeviceBufferT> {
         let ptr = if size > 0 && size_of::<T>() > 0 {
             // GCU_MEM_USED += size * size_of::<T>();
             // GCU_MEM_ALLOCATED += size * size_of::<T>();
@@ -95,8 +94,10 @@ impl<T: DeviceCopy> DeviceBufferTrait<T> for TopsDeviceBuffer<T> {
     /// only enqueing kernel launches that use the memory AFTER the allocation call.
     ///
     /// You can synchronize the stream to ensure the memory allocation operation is complete.
-    unsafe fn uninitialized_async(size: usize, stream: &Self::StreamT) -> DeviceResult<Self::DeviceBufferT>
-    {
+    unsafe fn uninitialized_async(
+        size: usize,
+        stream: &Self::StreamT,
+    ) -> DeviceResult<Self::DeviceBufferT> {
         let ptr = if size > 0 && size_of::<T>() > 0 {
             // GCU_MEM_USED += size * size_of::<T>();
             // GCU_MEM_ALLOCATED += size * size_of::<T>();
@@ -149,8 +150,7 @@ impl<T: DeviceCopy> DeviceBufferTrait<T> for TopsDeviceBuffer<T> {
     /// # Ok(())
     /// # }
     /// ```
-    fn drop_async(self, stream: &Self::StreamT) -> DeviceResult<()>
-    {
+    fn drop_async(self, stream: &Self::StreamT) -> DeviceResult<()> {
         if self.buf.is_null() {
             return Ok(());
         }
@@ -274,12 +274,11 @@ impl<T: DeviceCopy> DeviceBufferTrait<T> for TopsDeviceBuffer<T> {
     /// let values = [0u64; 5];
     /// let mut buffer = TopsDeviceBuffer::from_slice(&values).unwrap();
     /// ```
-    fn from_slice(slice: &[T]) -> DeviceResult<Self::DeviceBufferT>
-    {
-        // 
-            let mut uninit = unsafe { TopsDeviceBuffer::uninitialized(slice.len())? };
-            uninit.copy_from(slice)?;
-            Ok(uninit)
+    fn from_slice(slice: &[T]) -> DeviceResult<Self::DeviceBufferT> {
+        //
+        let mut uninit = unsafe { TopsDeviceBuffer::uninitialized(slice.len())? };
+        uninit.copy_from(slice)?;
+        Ok(uninit)
         // }
     }
 
@@ -313,16 +312,17 @@ impl<T: DeviceCopy> DeviceBufferTrait<T> for TopsDeviceBuffer<T> {
     ///     // Perform some operation on the buffer
     /// }
     /// ```
-    unsafe fn from_slice_async(slice: &[T], stream: &Self::StreamT) -> DeviceResult<Self::DeviceBufferT>
-    {
+    unsafe fn from_slice_async(
+        slice: &[T],
+        stream: &Self::StreamT,
+    ) -> DeviceResult<Self::DeviceBufferT> {
         let mut uninit = TopsDeviceBuffer::uninitialized_async(slice.len(), stream)?;
         uninit.async_copy_from(slice, stream)?;
         Ok(uninit)
     }
 
     /// Explicitly creates a [`DeviceSlice`] from this buffer.
-    fn as_slice(&self) -> &Self::DeviceSliceT
-    {
+    fn as_slice(&self) -> &Self::DeviceSliceT {
         self
     }
 }
@@ -337,22 +337,22 @@ impl<T: DeviceCopy> Drop for TopsDeviceBuffer<T> {
             let ptr = mem::replace(&mut self.buf, TopsDevicePointer::null());
             unsafe {
                 match self.stream {
-                    Some(stream_) => {
-                        match driv::topsFreeAsync(ptr.as_raw(), stream_).to_result() {
-                            Ok(()) => {
-                                mem::forget(self.to_owned());
-                            }
-                            _ => { panic!("Unable to drop device buffer!"); }
+                    Some(stream_) => match driv::topsFreeAsync(ptr.as_raw(), stream_).to_result() {
+                        Ok(()) => {
+                            mem::forget(self.to_owned());
+                        }
+                        _ => {
+                            panic!("Unable to drop device buffer!");
                         }
                     },
-                    _ => {
-                        match TopsMemory::free(ptr) {
-                            Ok(()) => {
-                                mem::forget(self.to_owned());
-                            }
-                            _ => { panic!("Unable to drop device buffer!"); }
+                    _ => match TopsMemory::free(ptr) {
+                        Ok(()) => {
+                            mem::forget(self.to_owned());
                         }
-                    }
+                        _ => {
+                            panic!("Unable to drop device buffer!");
+                        }
+                    },
                 }
             }
 
@@ -363,13 +363,12 @@ impl<T: DeviceCopy> Drop for TopsDeviceBuffer<T> {
             //         println!("GCU Memory: Used {} GB / Allocated {} GB", GCU_MEM_USED/1024/1024/1024, GCU_MEM_ALLOCATED/1024/1024/1024);
             //     }
             // }
-        } 
+        }
     }
 }
 impl DeviceBufferTraitEx for TopsDeviceBuffer<f32> {
     type DeviceBufferT = TopsDeviceBuffer<f32>;
     fn from_pointer<M>(pointer: *const M, size: usize) -> DeviceResult<Self::DeviceBufferT> {
-
         unsafe {
             let mut uninit = TopsDeviceBuffer::uninitialized(size)?;
             uninit.copy_from_pointer(pointer, size)?;
@@ -379,7 +378,6 @@ impl DeviceBufferTraitEx for TopsDeviceBuffer<f32> {
 }
 #[cfg(feature = "bytemuck")]
 impl<T: DeviceCopy + Zeroable> TopsDeviceBuffer<T> {
-    
     // type DeviceBufferT = TopsDeviceBuffer<T>;
     // type StreamT = CuStream;
     /// Allocate device memory and fill it with zeroes (`0u8`).
@@ -400,8 +398,7 @@ impl<T: DeviceCopy + Zeroable> TopsDeviceBuffer<T> {
     /// assert_eq!(values, [0; 4]);
     /// ```
     #[cfg_attr(docsrs, doc(cfg(feature = "bytemuck")))]
-    pub fn zeroed(size: usize) -> DeviceResult<TopsDeviceBuffer<T>>
-    {
+    pub fn zeroed(size: usize) -> DeviceResult<TopsDeviceBuffer<T>> {
         unsafe {
             let new_buf = TopsDeviceBuffer::uninitialized(size)?;
             if size_of::<T>() != 0 {
@@ -446,8 +443,10 @@ impl<T: DeviceCopy + Zeroable> TopsDeviceBuffer<T> {
     /// # }
     /// ```
     #[cfg_attr(docsrs, doc(cfg(feature = "bytemuck")))]
-    pub unsafe fn zeroed_async(size: usize, stream: &TopsStream) -> DeviceResult<TopsDeviceBuffer<T>>
-    {
+    pub unsafe fn zeroed_async(
+        size: usize,
+        stream: &TopsStream,
+    ) -> DeviceResult<TopsDeviceBuffer<T>> {
         let new_buf = TopsDeviceBuffer::uninitialized_async(size, stream)?;
         if size_of::<T>() != 0 {
             driv::topsMemsetD8Async(
@@ -545,15 +544,13 @@ impl<T: DeviceCopy> DerefMut for TopsDeviceBuffer<T> {
 //     }
 // }
 
-
 #[cfg(test)]
 mod test_device_buffer {
     use super::*;
-    use crate::stream::{TopsStream};
+    use crate::stream::TopsStream;
     use uhal::memory::{DeviceBufferTrait, DevicePointerTrait};
-    use uhal::DriverLibraryTrait;
     use uhal::stream::{StreamFlags, StreamTrait};
-    
+    use uhal::DriverLibraryTrait;
 
     #[derive(Clone, Copy, Debug)]
     struct ZeroSizedType;
@@ -627,7 +624,8 @@ mod test_device_buffer {
         let stream = TopsStream::new(StreamFlags::NON_BLOCKING, None).unwrap();
         let start = [0u64, 1, 2, 3, 4];
         unsafe {
-            let mut buf = TopsDeviceBuffer::from_slice_async(&[0u64, 1, 2, 3, 4, 5], &stream).unwrap();
+            let mut buf =
+                TopsDeviceBuffer::from_slice_async(&[0u64, 1, 2, 3, 4, 5], &stream).unwrap();
             let _ = buf.async_copy_from(&start, &stream);
         }
     }
@@ -668,7 +666,8 @@ mod test_device_buffer {
         let _device = crate::TopsApi::quick_init(0).unwrap();
         let stream = TopsStream::new(StreamFlags::NON_BLOCKING, None).unwrap();
         unsafe {
-            let mut buf = TopsDeviceBuffer::from_slice_async(&[0u64, 1, 2, 3, 4, 5], &stream).unwrap();
+            let mut buf =
+                TopsDeviceBuffer::from_slice_async(&[0u64, 1, 2, 3, 4, 5], &stream).unwrap();
             let start = TopsDeviceBuffer::from_slice_async(&[0u64, 1, 2, 3, 4], &stream).unwrap();
             let _ = buf.async_copy_from(&start, &stream);
         }

@@ -4,8 +4,7 @@ fn main() {
     for path in paths {
         println!("cargo:rustc-link-search=native={}", path);
     }
-    
+
     println!("cargo:rustc-link-lib=dylib=topsrt");
     println!("cargo:rerun-if-changed=build.rs");
-
 }

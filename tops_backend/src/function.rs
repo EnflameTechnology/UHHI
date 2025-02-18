@@ -1,14 +1,14 @@
 //! Functions and types for working with Device kernels.
 pub use tops_raw as driv;
 use uhal::context::{CacheConfig, SharedMemoryConfig};
-use uhal::function::{FunctionAttribute, GridSize, BlockSize, FunctionTrait};
-use uhal::error::{DeviceResult};
+use uhal::error::DeviceResult;
+use uhal::function::{BlockSize, FunctionAttribute, FunctionTrait, GridSize};
 
-use crate::driv::{topsFunction_t};
+use crate::driv::topsFunction_t;
+use crate::error::ToResult;
 use crate::module::TopsModule;
 use std::marker::PhantomData;
-use std::mem::{MaybeUninit};
-use crate::error::ToResult;
+use std::mem::MaybeUninit;
 
 /// Handle to a global kernel function.
 #[derive(Debug)]
@@ -17,7 +17,6 @@ pub struct TopsFunction<'a> {
     pub module: PhantomData<&'a TopsModule>,
 }
 
-
 unsafe impl<'a> Send for TopsFunction<'a> {}
 unsafe impl<'a> Sync for TopsFunction<'a> {}
 
@@ -25,7 +24,7 @@ impl<'a> FunctionTrait for TopsFunction<'a> {
     type FunctionT = TopsFunction<'a>;
     type ModuleT = TopsModule;
     type RawFunctionT = topsFunction_t;
-    fn new(inner: Self::RawFunctionT, _module: &Self::ModuleT) -> Self::FunctionT{
+    fn new(inner: Self::RawFunctionT, _module: &Self::ModuleT) -> Self::FunctionT {
         Self::FunctionT {
             inner,
             module: PhantomData,
@@ -33,7 +32,7 @@ impl<'a> FunctionTrait for TopsFunction<'a> {
     }
 
     /// Returns information about a function.
-    fn get_attribute(&self, attr: FunctionAttribute) -> DeviceResult<i32>{
+    fn get_attribute(&self, attr: FunctionAttribute) -> DeviceResult<i32> {
         unsafe {
             let mut val = 0i32;
             driv::topsFuncGetAttribute(
@@ -57,7 +56,7 @@ impl<'a> FunctionTrait for TopsFunction<'a> {
     ///
     /// This setting does nothing on devices where the size of the L1 cache and shared memory are
     /// fixed.
-    fn set_cache_config(&mut self, _config: CacheConfig) -> DeviceResult<()>{
+    fn set_cache_config(&mut self, _config: CacheConfig) -> DeviceResult<()> {
         // unsafe { driv::topsFuncSetCacheConfig(self.inner as *mut ::std::os::raw::c_void, transmute(config)).to_result() }
         Ok(())
     }
@@ -67,7 +66,7 @@ impl<'a> FunctionTrait for TopsFunction<'a> {
     /// On devices with configurable shared memory banks, this function will set this function's
     /// shared memory bank size which is used for subsequent launches of this function. If not set,
     /// the context-wide setting will be used instead.
-    fn set_shared_memory_config(&mut self, _cfg: SharedMemoryConfig) -> DeviceResult<()>{
+    fn set_shared_memory_config(&mut self, _cfg: SharedMemoryConfig) -> DeviceResult<()> {
         // unsafe { driv::topsFuncSetSharedMemConfig(self.inner as *mut ::std::os::raw::c_void, transmute(cfg)).to_result() }
         Ok(())
     }
@@ -83,7 +82,7 @@ impl<'a> FunctionTrait for TopsFunction<'a> {
         &self,
         blocks: GridSize,
         block_size: BlockSize,
-    ) -> DeviceResult<usize>{
+    ) -> DeviceResult<usize> {
         let _num_blocks = blocks.x * blocks.y * blocks.z;
         let _total_block_size = block_size.x * block_size.y * block_size.z;
 
@@ -107,7 +106,7 @@ impl<'a> FunctionTrait for TopsFunction<'a> {
         &self,
         block_size: BlockSize,
         _dynamic_smem_size: usize,
-    ) -> DeviceResult<u32>{
+    ) -> DeviceResult<u32> {
         let _total_block_size = block_size.x * block_size.y * block_size.z;
 
         // let mut num_blocks = MaybeUninit::uninit();
@@ -143,7 +142,7 @@ impl<'a> FunctionTrait for TopsFunction<'a> {
         &self,
         _dynamic_smem_size: usize,
         _block_size_limit: BlockSize,
-    ) -> DeviceResult<(u32, u32)>{
+    ) -> DeviceResult<(u32, u32)> {
         // let mut min_grid_size = MaybeUninit::uninit();
         // let mut block_size = MaybeUninit::uninit();
 
@@ -163,6 +162,6 @@ impl<'a> FunctionTrait for TopsFunction<'a> {
         //         block_size.assume_init() as u32,
         //     ))
         // }
-        Ok((1,1))
+        Ok((1, 1))
     }
 }

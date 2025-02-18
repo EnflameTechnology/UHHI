@@ -4,15 +4,15 @@ use std::ptr;
 pub use tops_raw as driv;
 use uhal::memory::DevicePointerTrait;
 
-use uhal::error::DeviceResult;
 pub use cust_core::_hidden::DeviceCopy;
 pub use driv::topsStream_t;
 use uhal::error::DeviceError;
+use uhal::error::DeviceResult;
 use uhal::stream::StreamTrait;
 
-use crate::stream::TopsStream;
-use crate::error::ToResult;
 use super::TopsDevicePointer;
+use crate::error::ToResult;
+use crate::stream::TopsStream;
 
 pub struct TopsMemory;
 
@@ -52,13 +52,12 @@ impl TopsMemory {
     ///     TopsMemory::free(device_buffer).unwrap();
     /// }
     /// ```
-    pub unsafe fn malloc<T: DeviceCopy>(count: usize) -> DeviceResult<TopsDevicePointer<T>>
-    {
+    pub unsafe fn malloc<T: DeviceCopy>(count: usize) -> DeviceResult<TopsDevicePointer<T>> {
         let size = count.checked_mul(mem::size_of::<T>()).unwrap_or(0);
         if size == 0 {
             return Err(DeviceError::InvalidMemoryAllocation);
         }
-    
+
         let mut ptr = ptr::null_mut();
         driv::topsMalloc(&mut ptr as *mut *mut c_void, size as u64).to_result()?;
         Ok(TopsDevicePointer::from_raw(ptr))
@@ -76,13 +75,12 @@ impl TopsMemory {
     pub unsafe fn malloc_async<T: DeviceCopy>(
         stream: &TopsStream,
         count: usize,
-    ) -> DeviceResult<TopsDevicePointer<T>>
-    {
+    ) -> DeviceResult<TopsDevicePointer<T>> {
         let size = count.checked_mul(mem::size_of::<T>()).unwrap_or(0);
         if size == 0 {
             return Err(DeviceError::InvalidMemoryAllocation);
         }
-    
+
         let mut ptr: *mut c_void = ptr::null_mut();
 
         driv::topsMallocAsync(
@@ -107,15 +105,12 @@ impl TopsMemory {
     pub unsafe fn free_async<T: DeviceCopy>(
         stream: &TopsStream,
         p: TopsDevicePointer<T>,
-    ) -> DeviceResult<()>
-    {
+    ) -> DeviceResult<()> {
         if mem::size_of::<T>() == 0 {
             return Err(DeviceError::InvalidMemoryAllocation);
         }
         driv::topsFreeAsync(p.as_raw(), stream.as_inner()).to_result()
     }
-
-    
 
     /// Free memory allocated with [`malloc`](fn.malloc.html).
     ///
@@ -143,22 +138,19 @@ impl TopsMemory {
     ///     TopsMemory::free(device_buffer).unwrap();
     /// }
     /// ```
-    pub unsafe fn free<T: DeviceCopy>(ptr: TopsDevicePointer<T>) -> DeviceResult<()>
-    {
+    pub unsafe fn free<T: DeviceCopy>(ptr: TopsDevicePointer<T>) -> DeviceResult<()> {
         if ptr.is_null() {
             return Err(DeviceError::InvalidMemoryAllocation);
         }
-    
+
         return driv::topsFree(ptr.as_raw()).to_result();
     }
-
 }
-
 
 #[cfg(test)]
 mod test {
     use super::*;
-    use uhal::memory::{MemoryTrait};
+    use uhal::memory::MemoryTrait;
     use uhal::DriverLibraryTrait;
 
     #[derive(Clone, Copy, Debug)]
@@ -208,7 +200,6 @@ mod test {
         }
     }
 
-
     #[test]
     fn test_cuda_free_null() {
         let _device = crate::TopsApi::quick_init(0).unwrap();
@@ -219,5 +210,4 @@ mod test {
             );
         }
     }
-
 }

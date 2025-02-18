@@ -1,21 +1,20 @@
-pub use tops_raw as driv;
 use driv::topsDeviceptr_t;
-use uhal::memory::{DeviceBoxTrait, DevicePointerTrait};
+pub use tops_raw as driv;
 use uhal::error::{DeviceResult, DropResult};
+use uhal::memory::{DeviceBoxTrait, DevicePointerTrait};
 // use uhal::stream::{Stream};
 
-pub use cust_core::_hidden::DeviceCopy;
-use uhal::stream::StreamTrait;
 use crate::error::ToResult;
+pub use cust_core::_hidden::DeviceCopy;
 use std::fmt::{self, Pointer};
 use std::mem::{self, ManuallyDrop};
+use uhal::stream::StreamTrait;
 
-use std::os::raw::c_void;
 use crate::memory::{TopsDevicePointer, TopsMemory};
 use crate::stream::TopsStream;
+use std::os::raw::c_void;
 
-use super::{CopyDestination, AsyncCopyDestination};
-
+use super::{AsyncCopyDestination, CopyDestination};
 
 #[derive(Debug)]
 pub struct TopsDeviceBox<T: DeviceCopy> {
@@ -35,7 +34,7 @@ impl<T: DeviceCopy + Default> TopsDeviceBox<T> {
 }
 
 #[cfg(feature = "bytemuck")]
-impl<T: DeviceCopy + bytemuck::Zeroable> TopsDeviceBox<T>{
+impl<T: DeviceCopy + bytemuck::Zeroable> TopsDeviceBox<T> {
     // type DeviceBoxT = TopsDeviceBox<T>;
     // type StreamT = CuStream;
     /// Allocate device memory and fill it with zeroes (`0u8`).
@@ -56,8 +55,7 @@ impl<T: DeviceCopy + bytemuck::Zeroable> TopsDeviceBox<T>{
     /// assert_eq!(0, value);
     /// ```
     #[cfg_attr(docsrs, doc(cfg(feature = "bytemuck")))]
-    pub fn zeroed() -> DeviceResult<TopsDeviceBox<T>>
-    {
+    pub fn zeroed() -> DeviceResult<TopsDeviceBox<T>> {
         unsafe {
             let new_box = TopsDeviceBox::uninitialized()?;
             if mem::size_of::<T>() != 0 {
@@ -102,8 +100,7 @@ impl<T: DeviceCopy + bytemuck::Zeroable> TopsDeviceBox<T>{
     /// # }
     /// ```
     #[cfg_attr(docsrs, doc(cfg(feature = "bytemuck")))]
-    pub unsafe fn zeroed_async(stream: &TopsStream) -> DeviceResult<TopsDeviceBox<T>>
-    {
+    pub unsafe fn zeroed_async(stream: &TopsStream) -> DeviceResult<TopsDeviceBox<T>> {
         let new_box = TopsDeviceBox::uninitialized_async(stream)?;
         if mem::size_of::<T>() != 0 {
             driv::topsMemsetD8Async(
@@ -117,7 +114,6 @@ impl<T: DeviceCopy + bytemuck::Zeroable> TopsDeviceBox<T>{
         Ok(new_box)
     }
 }
-
 
 impl<T: DeviceCopy> DeviceBoxTrait<T> for TopsDeviceBox<T> {
     type DeviceBoxT = TopsDeviceBox<T>;
@@ -484,12 +480,8 @@ impl<T: DeviceCopy> CopyDestination<T> for TopsDeviceBox<T> {
         let size = mem::size_of::<T>() as u64;
         if size != 0 {
             unsafe {
-                driv::topsMemcpyDtoH(
-                    val as *const T as *mut c_void,
-                    self.ptr.as_raw(),
-                    size,
-                )
-                .to_result()?
+                driv::topsMemcpyDtoH(val as *const T as *mut c_void, self.ptr.as_raw(), size)
+                    .to_result()?
             }
         }
         Ok(())
@@ -547,7 +539,11 @@ impl<T: DeviceCopy> AsyncCopyDestination<T> for TopsDeviceBox<T> {
 
 impl<T: DeviceCopy> AsyncCopyDestination<TopsDeviceBox<T>> for TopsDeviceBox<T> {
     type StreamT = TopsStream;
-    unsafe fn async_copy_from(&mut self, val: &TopsDeviceBox<T>, stream: &Self::StreamT) -> DeviceResult<()> {
+    unsafe fn async_copy_from(
+        &mut self,
+        val: &TopsDeviceBox<T>,
+        stream: &Self::StreamT,
+    ) -> DeviceResult<()> {
         let size = mem::size_of::<T>() as u64;
         if size != 0 {
             driv::topsMemcpyDtoDAsync(self.ptr.as_raw(), val.ptr.as_raw(), size, stream.as_inner())
@@ -556,7 +552,11 @@ impl<T: DeviceCopy> AsyncCopyDestination<TopsDeviceBox<T>> for TopsDeviceBox<T> 
         Ok(())
     }
 
-    unsafe fn async_copy_to(&self, val: &mut TopsDeviceBox<T>, stream: &Self::StreamT) -> DeviceResult<()> {
+    unsafe fn async_copy_to(
+        &self,
+        val: &mut TopsDeviceBox<T>,
+        stream: &Self::StreamT,
+    ) -> DeviceResult<()> {
         let size = mem::size_of::<T>() as u64;
         if size != 0 {
             driv::topsMemcpyDtoDAsync(val.ptr.as_raw(), self.ptr.as_raw(), size, stream.as_inner())
@@ -565,7 +565,6 @@ impl<T: DeviceCopy> AsyncCopyDestination<TopsDeviceBox<T>> for TopsDeviceBox<T> 
         Ok(())
     }
 }
-
 
 #[cfg(test)]
 mod test_device_box {
