@@ -118,7 +118,10 @@ impl DriverLibraryTrait for TopsApi {
         if device_id < num_devices {
             let _ = TopsDevice::select_device(device_id);
         } else {
-            panic!("Unable to obtain requested device: ordinal id {}", device_id);
+            panic!(
+                "Unable to obtain requested device: ordinal id {}",
+                device_id
+            );
         }
         TopsDevice::get_device(device_id)
         // let ctx = TopsContext::new(device)?;
