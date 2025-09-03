@@ -30,7 +30,6 @@ fn main() {
             std::process::exit(1);
         }
     }
-
 }
 
 /// Run a script inside a specific directory and return success

@@ -1,7 +1,7 @@
 use std::fs;
+use std::io::{self, Write};
 use std::path::{Path, PathBuf};
 use std::process::Command;
-use std::io::{self, Write};
 
 fn main() {
     let manifest_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
@@ -9,7 +9,10 @@ fn main() {
     println!("cargo:rerun-if-changed=build.rs");
     // Check sys.rs
     if !sys_rs.exists() {
-        println!("cargo:warning={} not found, running bindgen.sh...", sys_rs.display());
+        println!(
+            "cargo:warning={} not found, running bindgen.sh...",
+            sys_rs.display()
+        );
         if !run_script_in_dir("bindgen.sh", &manifest_dir) {
             eprintln!(
                 "Error: Failed to generate sys.rs. Please install `bindgen` and ensure topsrider is correctly installed."
