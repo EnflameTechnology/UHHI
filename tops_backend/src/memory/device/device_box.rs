@@ -466,7 +466,7 @@ impl<T: DeviceCopy> Pointer for TopsDeviceBox<T> {
 // impl<T: DeviceCopy> crate::memory::private::Sealed for DeviceBox<T> {}
 impl<T: DeviceCopy> CopyDestination<T> for TopsDeviceBox<T> {
     fn copy_from(&mut self, val: &T) -> DeviceResult<()> {
-        let size = mem::size_of::<T>() as u64;
+        let size = mem::size_of::<T>() as usize;
         if size != 0 {
             unsafe {
                 driv::topsMemcpyHtoD(self.ptr.as_raw(), val as *const T as *mut c_void, size)
@@ -477,7 +477,7 @@ impl<T: DeviceCopy> CopyDestination<T> for TopsDeviceBox<T> {
     }
 
     fn copy_to(&self, val: &mut T) -> DeviceResult<()> {
-        let size = mem::size_of::<T>() as u64;
+        let size = mem::size_of::<T>() as usize;
         if size != 0 {
             unsafe {
                 driv::topsMemcpyDtoH(val as *const T as *mut c_void, self.ptr.as_raw(), size)
@@ -490,7 +490,7 @@ impl<T: DeviceCopy> CopyDestination<T> for TopsDeviceBox<T> {
 
 impl<T: DeviceCopy> CopyDestination<TopsDeviceBox<T>> for TopsDeviceBox<T> {
     fn copy_from(&mut self, val: &TopsDeviceBox<T>) -> DeviceResult<()> {
-        let size = mem::size_of::<T>() as u64;
+        let size = mem::size_of::<T>() as usize;
         if size != 0 {
             unsafe { driv::topsMemcpyDtoD(self.ptr.as_raw(), val.ptr.as_raw(), size).to_result()? }
         }
@@ -498,7 +498,7 @@ impl<T: DeviceCopy> CopyDestination<TopsDeviceBox<T>> for TopsDeviceBox<T> {
     }
 
     fn copy_to(&self, val: &mut TopsDeviceBox<T>) -> DeviceResult<()> {
-        let size = mem::size_of::<T>() as u64;
+        let size = mem::size_of::<T>() as usize;
         if size != 0 {
             unsafe { driv::topsMemcpyDtoD(val.ptr.as_raw(), self.ptr.as_raw(), size).to_result()? }
         }
@@ -509,7 +509,7 @@ impl<T: DeviceCopy> CopyDestination<TopsDeviceBox<T>> for TopsDeviceBox<T> {
 impl<T: DeviceCopy> AsyncCopyDestination<T> for TopsDeviceBox<T> {
     type StreamT = TopsStream;
     unsafe fn async_copy_from(&mut self, val: &T, stream: &Self::StreamT) -> DeviceResult<()> {
-        let size = mem::size_of::<T>() as u64;
+        let size = mem::size_of::<T>() as usize;
         if size != 0 {
             driv::topsMemcpyHtoDAsync(
                 self.ptr.as_raw(),
@@ -523,7 +523,7 @@ impl<T: DeviceCopy> AsyncCopyDestination<T> for TopsDeviceBox<T> {
     }
 
     unsafe fn async_copy_to(&self, val: &mut T, stream: &Self::StreamT) -> DeviceResult<()> {
-        let size = mem::size_of::<T>() as u64;
+        let size = mem::size_of::<T>() as usize;
         if size != 0 {
             driv::topsMemcpyDtoHAsync(
                 val as *mut _ as *mut c_void,
@@ -544,7 +544,7 @@ impl<T: DeviceCopy> AsyncCopyDestination<TopsDeviceBox<T>> for TopsDeviceBox<T> 
         val: &TopsDeviceBox<T>,
         stream: &Self::StreamT,
     ) -> DeviceResult<()> {
-        let size = mem::size_of::<T>() as u64;
+        let size = mem::size_of::<T>() as usize;
         if size != 0 {
             driv::topsMemcpyDtoDAsync(self.ptr.as_raw(), val.ptr.as_raw(), size, stream.as_inner())
                 .to_result()?
@@ -557,7 +557,7 @@ impl<T: DeviceCopy> AsyncCopyDestination<TopsDeviceBox<T>> for TopsDeviceBox<T> 
         val: &mut TopsDeviceBox<T>,
         stream: &Self::StreamT,
     ) -> DeviceResult<()> {
-        let size = mem::size_of::<T>() as u64;
+        let size = mem::size_of::<T>() as usize;
         if size != 0 {
             driv::topsMemcpyDtoDAsync(val.ptr.as_raw(), self.ptr.as_raw(), size, stream.as_inner())
                 .to_result()?

@@ -70,10 +70,10 @@ impl DeviceTrait for TopsDevice {
     }
 
     /// Returns the total amount of memory available on the device in bytes.
-    fn total_memory(self) -> DeviceResult<u64> {
+    fn total_memory(self) -> DeviceResult<usize> {
         unsafe {
-            let mut memory = 0u64;
-            driv::topsDeviceTotalMem(&mut memory as *mut u64, self.0).to_result()?;
+            let mut memory = 0usize;
+            driv::topsDeviceTotalMem(&mut memory as *mut usize, self.0).to_result()?;
             Ok(memory)
         }
     }

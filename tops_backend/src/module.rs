@@ -259,16 +259,16 @@ impl TopsModule {
     pub fn get_global<'a, T: DeviceCopy>(&'a self, name: &CStr) -> DeviceResult<TopsSymbol<'a, T>> {
         unsafe {
             let mut ptr: TopsDevicePointer<T> = TopsDevicePointer::null();
-            let mut size: u64 = 0;
+            let mut size: usize = 0;
 
             driv::topsModuleGetGlobal(
                 &mut ptr as *mut TopsDevicePointer<T> as *mut driv::topsDeviceptr_t,
-                &mut size as *mut u64,
+                &mut size as *mut usize,
                 self.0,
                 name.as_ptr(),
             )
             .to_result()?;
-            assert_eq!(size, mem::size_of::<T>() as u64);
+            assert_eq!(size, mem::size_of::<T>());
             Ok(TopsSymbol {
                 ptr,
                 module: PhantomData,
@@ -316,7 +316,7 @@ impl<'a, T: DeviceCopy> fmt::Pointer for TopsSymbol<'a, T> {
 
 impl<'a, T: DeviceCopy> CopyDestination<T> for TopsSymbol<'a, T> {
     fn copy_from(&mut self, val: &T) -> DeviceResult<()> {
-        let size = mem::size_of::<T>() as u64;
+        let size = mem::size_of::<T>() as usize;
         if size != 0 {
             unsafe {
                 driv::topsMemcpyHtoD(
@@ -331,7 +331,7 @@ impl<'a, T: DeviceCopy> CopyDestination<T> for TopsSymbol<'a, T> {
     }
 
     fn copy_to(&self, val: &mut T) -> DeviceResult<()> {
-        let size = mem::size_of::<T>() as u64;
+        let size = mem::size_of::<T>() as usize;
         if size != 0 {
             unsafe {
                 driv::topsMemcpyDtoH(val as *const T as *mut c_void, self.ptr.as_raw(), size)

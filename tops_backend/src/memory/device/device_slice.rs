@@ -609,7 +609,7 @@ impl<T: DeviceCopy, I: AsRef<[T]> + AsMut<[T]> + ?Sized> CopyDestination<I> for 
             self.len() == val.len(),
             "destination and source slices have different lengths"
         );
-        let size = (mem::size_of::<T>() * self.len()) as u64;
+        let size = (mem::size_of::<T>() * self.len()) as usize;
         if size != 0 {
             unsafe {
                 //Memcpy in tops is different from CUDA
@@ -643,7 +643,7 @@ impl<T: DeviceCopy, I: AsRef<[T]> + AsMut<[T]> + ?Sized> CopyDestination<I> for 
             self.len() == val.len(),
             "destination and source slices have different lengths"
         );
-        let size = (mem::size_of::<T>() * self.len()) as u64;
+        let size = (mem::size_of::<T>() * self.len()) as usize;
         if size != 0 {
             unsafe {
                 driv::topsMemcpy(
@@ -674,7 +674,7 @@ impl<T: DeviceCopy> TopsDeviceSlice<T> {
                 return driv::topsMemcpyHtoD(
                     self.ptr.as_raw(),
                     pointer as *mut c_void,
-                    size as u64,
+                    size as usize,
                 )
                 .to_result();
                 // if size % 4096 != 0 {
@@ -700,7 +700,7 @@ impl<T: DeviceCopy> CopyDestination<TopsDeviceSlice<T>> for TopsDeviceSlice<T> {
             self.len() == val.len(),
             "destination and source slices have different lengths"
         );
-        let size = (mem::size_of::<T>() * self.len()) as u64;
+        let size = (mem::size_of::<T>() * self.len()) as usize;
         if size != 0 {
             unsafe {
                 driv::topsMemcpyDtoD(self.ptr.as_raw(), val.as_device_ptr().as_raw(), size)
@@ -715,7 +715,7 @@ impl<T: DeviceCopy> CopyDestination<TopsDeviceSlice<T>> for TopsDeviceSlice<T> {
             self.len() == val.len(),
             "destination and source slices have different lengths"
         );
-        let size = (mem::size_of::<T>() * self.len()) as u64;
+        let size = (mem::size_of::<T>() * self.len()) as usize;
         if size != 0 {
             unsafe {
                 driv::topsMemcpyDtoD(
@@ -750,7 +750,7 @@ impl<T: DeviceCopy, I: AsRef<[T]> + AsMut<[T]> + ?Sized> AsyncCopyDestination<I>
             self.len() == val.len(),
             "destination and source slices have different lengths"
         );
-        let size = (mem::size_of::<T>() * self.len()) as u64;
+        let size = (mem::size_of::<T>() * self.len()) as usize;
         if size != 0 {
             driv::topsMemcpyHtoDAsync(
                 self.ptr.as_raw(),
@@ -769,7 +769,7 @@ impl<T: DeviceCopy, I: AsRef<[T]> + AsMut<[T]> + ?Sized> AsyncCopyDestination<I>
             self.len() == val.len(),
             "destination and source slices have different lengths"
         );
-        let size = (mem::size_of::<T>() * self.len()) as u64;
+        let size = (mem::size_of::<T>() * self.len()) as usize;
         if size != 0 {
             driv::topsMemcpyDtoHAsync(
                 val.as_mut_ptr() as *mut c_void,
@@ -795,7 +795,7 @@ impl<T: DeviceCopy> AsyncCopyDestination<TopsDeviceSlice<T>> for TopsDeviceSlice
             self.len() == val.len(),
             "destination and source slices have different lengths"
         );
-        let size = (mem::size_of::<T>() * self.len()) as u64;
+        let size = (mem::size_of::<T>() * self.len()) as usize;
         if size != 0 {
             driv::topsMemcpyDtoDAsync(
                 self.as_device_ptr().as_raw(),
@@ -817,7 +817,7 @@ impl<T: DeviceCopy> AsyncCopyDestination<TopsDeviceSlice<T>> for TopsDeviceSlice
             self.len() == val.len(),
             "destination and source slices have different lengths"
         );
-        let size = (mem::size_of::<T>() * self.len()) as u64;
+        let size = (mem::size_of::<T>() * self.len()) as usize;
         if size != 0 {
             driv::topsMemcpyDtoDAsync(
                 val.as_device_ptr().as_raw(),

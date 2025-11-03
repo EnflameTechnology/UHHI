@@ -7,8 +7,18 @@ fn main() {
     let manifest_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
     let sys_rs = manifest_dir.join("src/sys.rs");
     println!("cargo:rerun-if-changed=build.rs");
+
+    // Check tops.rs (existence + empty or invalid content)
+    let needs_regen = match fs::read_to_string(&sys_rs) {
+        Ok(content) => {
+            let lines: Vec<_> = content.lines().collect();
+            lines.len() <= 1 || content.trim().is_empty()
+        }
+        Err(_) => true, // file doesn't exist or can't be read
+    };
+
     // Check sys.rs
-    if !sys_rs.exists() {
+    if needs_regen {
         println!(
             "cargo:warning={} not found, running bindgen.sh...",
             sys_rs.display()

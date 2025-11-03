@@ -59,7 +59,7 @@ impl TopsMemory {
         }
 
         let mut ptr = ptr::null_mut();
-        driv::topsMalloc(&mut ptr as *mut *mut c_void, size as u64).to_result()?;
+        driv::topsMalloc(&mut ptr as *mut *mut c_void, size).to_result()?;
         Ok(TopsDevicePointer::from_raw(ptr))
     }
 
@@ -85,7 +85,7 @@ impl TopsMemory {
 
         driv::topsMallocAsync(
             &mut ptr as *mut *mut c_void,
-            size as u64,
+            size,
             stream.as_inner(),
             0,
         )
@@ -161,7 +161,7 @@ mod test {
     fn test_cuda_malloc() {
         let _device = crate::TopsApi::quick_init(0).unwrap();
         unsafe {
-            let device_mem = TopsMemory::malloc::<u64>(1).unwrap();
+            let device_mem = TopsMemory::malloc::<usize>(1).unwrap();
             assert!(!device_mem.is_null());
             TopsMemory::free(device_mem).unwrap();
         }
@@ -173,7 +173,7 @@ mod test {
         unsafe {
             assert_eq!(
                 DeviceError::InvalidMemoryAllocation,
-                TopsMemory::malloc::<u64>(0).unwrap_err()
+                TopsMemory::malloc::<usize>(0).unwrap_err()
             );
         }
     }
@@ -195,7 +195,7 @@ mod test {
         unsafe {
             assert_eq!(
                 DeviceError::InvalidMemoryAllocation,
-                TopsMemory::malloc::<u64>(::std::usize::MAX - 1).unwrap_err()
+                TopsMemory::malloc::<usize>(::std::usize::MAX - 1).unwrap_err()
             );
         }
     }
@@ -206,7 +206,7 @@ mod test {
         unsafe {
             assert_eq!(
                 DeviceError::InvalidMemoryAllocation,
-                TopsMemory::free(TopsDevicePointer::<u64>::null()).unwrap_err()
+                TopsMemory::free(TopsDevicePointer::<usize>::null()).unwrap_err()
             );
         }
     }
