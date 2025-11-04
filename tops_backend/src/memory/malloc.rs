@@ -83,13 +83,8 @@ impl TopsMemory {
 
         let mut ptr: *mut c_void = ptr::null_mut();
 
-        driv::topsMallocAsync(
-            &mut ptr as *mut *mut c_void,
-            size,
-            stream.as_inner(),
-            0,
-        )
-        .to_result()?;
+        driv::topsMallocAsync(&mut ptr as *mut *mut c_void, size, stream.as_inner(), 0)
+            .to_result()?;
         let ptr = ptr as *mut T;
         Ok(TopsDevicePointer::from_raw(ptr as driv::topsDeviceptr_t))
     }

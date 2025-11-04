@@ -40,6 +40,10 @@ fn main() {
             );
             std::process::exit(1);
         }
+        // Fix bug for bindgen which defines size_t incorrectly on some platforms
+        if let Err(e) = fix_size_t_typedef(&sys_rs) {
+            eprintln!("Warning: Failed to patch eccl sys.rs: {}", e);
+        }
     }
 }
 
@@ -73,5 +77,19 @@ fn patch_sys_rs(path: &Path) -> io::Result<()> {
     }
 
     fs::write(path, lines.join("\n"))?;
+    Ok(())
+}
+
+/// Replace `pub type size_t = ::std::os::raw::c_ulong;` with `pub type size_t = usize;`
+fn fix_size_t_typedef(tops_rs: &PathBuf) -> io::Result<()> {
+    let content = fs::read_to_string(tops_rs)?;
+    let replaced = content.replace(
+        "pub type size_t = ::std::os::raw::c_ulong;",
+        "pub type size_t = usize;",
+    );
+    if replaced != content {
+        let mut file = fs::File::create(tops_rs)?;
+        file.write_all(replaced.as_bytes())?;
+    }
     Ok(())
 }
